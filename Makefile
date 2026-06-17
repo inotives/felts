@@ -32,9 +32,17 @@ format: ## Format Python files with Ruff.
 format-check: ## Check Python formatting with Ruff.
 	$(UV) run ruff format --check .
 
+.PHONY: typecheck
+typecheck: ## Run mypy type checks.
+	$(UV) run mypy
+
 .PHONY: test
-test: ## Run unit smoke tests.
+test: ## Run fast unit tests.
 	$(UV) run pytest tests/unit
+
+.PHONY: test-integration
+test-integration: db-bootstrap ## Run DB-backed integration tests.
+	$(UV) run pytest tests/integration
 
 .PHONY: db-up
 db-up: ## Start local Postgres.
@@ -65,6 +73,10 @@ db-check: db-up ## Verify TimescaleDB and pgvector are enabled.
 	test "$$count" = "2"; \
 	echo "Postgres extensions ready: timescaledb, vector"
 
+.PHONY: db-bootstrap
+db-bootstrap: db-up ## Apply local SQL bootstrap files that may not run on existing volumes.
+	$(DOCKER_COMPOSE) exec -T postgres psql -U postgres -d felts < docker/postgres/init/10-create-raw-records.sql
+
 .PHONY: dbt-debug
 dbt-debug: db-up ## Verify dbt project/profile and Postgres connectivity.
 	@test -f $(DBT_PROFILES_DIR)/profiles.yml || cp $(DBT_PROFILES_DIR)/profiles.yml.example $(DBT_PROFILES_DIR)/profiles.yml
@@ -82,4 +94,4 @@ prefect-server: db-up ## Start a local Prefect server backed by Dockerized Postg
 		$(UV) run prefect server start --host 0.0.0.0
 
 .PHONY: check
-check: lint format-check test db-check dbt-debug prefect-check ## Run scaffold verification.
+check: lint format-check typecheck test db-check test-integration dbt-debug prefect-check ## Run scaffold verification.

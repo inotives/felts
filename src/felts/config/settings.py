@@ -36,7 +36,15 @@ class Settings(BaseSettings):
     dbt_project_dir: Path = Field(default=Path("transforms"), alias="FELTS_DBT_PROJECT_DIR")
     dbt_profiles_dir: Path = Field(default=Path("transforms"), alias="FELTS_DBT_PROFILES_DIR")
 
+    raw_schema: str = Field(default="raw", alias="FELTS_RAW_SCHEMA")
+    raw_table: str = Field(default="raw_records", alias="FELTS_RAW_TABLE")
+    loader_batch_size: int = Field(default=1000, alias="FELTS_LOADER_BATCH_SIZE")
+
     coingecko_api_key: str | None = Field(default=None, alias="COINGECKO_API_KEY")
+
+    @property
+    def raw_table_name(self) -> str:
+        return f"{self.raw_schema}.{self.raw_table}"
 
     def resolve_project_path(self, path: Path) -> Path:
         if path.is_absolute():
