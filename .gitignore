@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# uv and local environments
+.venv/
+
+# Local configuration
+.env
+.env.*
+!.env.example
+
+# dbt
+transforms/profiles.yml
+transforms/target/
+transforms/dbt_packages/
+transforms/logs/
+
+# Docker and local data
+*.pid
+
+# Editors and OS files
+.DS_Store
+.idea/
+.vscode/

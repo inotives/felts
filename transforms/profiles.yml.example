@@ -1,0 +1,13 @@
+felts:
+  target: local
+  outputs:
+    local:
+      type: postgres
+      host: "{{ env_var('FELTS_DB_HOST', 'localhost') }}"
+      port: "{{ env_var('FELTS_DB_PORT', '5432') | int }}"
+      user: "{{ env_var('FELTS_DB_USER', 'felts') }}"
+      pass: "{{ env_var('FELTS_DB_PASSWORD', 'felts') }}"
+      dbname: "{{ env_var('FELTS_DB_NAME', 'felts') }}"
+      schema: public
+      threads: 4
+      connect_timeout: 10
