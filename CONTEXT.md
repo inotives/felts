@@ -36,6 +36,10 @@ _Avoid_: writer, importer
 The lookup that maps a **Source** and **Entity** to the current validation schema when one exists.
 _Avoid_: catalog, dbt sources
 
+**Source Run**:
+One invocation that extracts and writes selected **Entities** for a **Source**, producing a source-level outcome summary.
+_Avoid_: job, flow, task
+
 ## Relationships
 
 - A **Source** emits one or more **Entities**.
@@ -44,6 +48,7 @@ _Avoid_: catalog, dbt sources
 - A **Loader** persists **RawRecords**.
 - A **Batch** groups the **RawRecords** produced by one write operation.
 - A **Schema Registry** may validate **ExtractedRecords** before they become **RawRecords**.
+- A **Source Run** processes selected **Entities** for one **Source**.
 
 ## Example dialogue
 
