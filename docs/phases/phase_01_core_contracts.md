@@ -7,43 +7,203 @@ Establish the shared Felts contracts that every later source, loader, flow, and 
 ## Core Functionality
 
 - Typed settings via `pydantic-settings`.
+- Universal extracted record contract.
 - Universal raw record contract.
+- Writer-assigned `batch_id` when extractors do not provide one.
+- Required `extracted_at` ingestion timestamp and optional `observed_at` source timestamp.
+- Timezone-aware timestamp requirements.
+- Optional `source_record_id` for sources that provide a real stable identifier.
+- Raw payload preservation after extractor JSON adaptation.
+- Payloads are JSON objects per record.
+- Deterministic raw record identity for ingestion idempotency.
+- Raw validation metadata for schema-invalid but loadable payloads.
+- Normalized validation error details for invalid raw records.
 - Schema registry for `source + entity -> Pydantic model`.
+- Optional schema validation when a schema is registered for `source + entity`.
+- Schema name and version captured as raw record metadata, not as part of the registry lookup key.
+- Schema metadata supplied during registry registration rather than embedded in Pydantic model classes.
+- `schema_version` represented as a string.
+- Normalized string identifiers for `source` and `entity`.
+- Python-side length limits for core identifier fields.
 - Base extractor and loader interfaces.
+- Base extractor returns `Iterable[ExtractedRecord]`.
+- Loader factory as the settings-to-loader composition boundary.
+- Synchronous Postgres loader using `psycopg`.
+- Batch-oriented loader API for raw record writes.
+- Immutable raw inserts using deterministic IDs and `ON CONFLICT DO NOTHING`.
+- One Postgres transaction per loader batch.
+- Batch-oriented writer API with per-record outcome reporting.
+- High-level `RawWriter` that composes schema registry, raw ID generation, raw record construction, and loader writes.
+- `RawWriter` support for mixed `source/entity` records in one write call.
+- Configurable writer-to-loader batch chunking.
+- `RawWriter.write(...)` accepts `Iterable[ExtractedRecord]`.
+- Chunk-level writer atomicity for lazy iterables.
+- Explicit schema registry dependency passed into `RawWriter`.
+- Separate `LoadResult` and `WriteResult` contracts.
+- Minimal typed result error objects for per-record failures.
+- Minimal shared exception hierarchy for setup and caller misuse failures.
+- Minimal standard-library logging in writer/loader paths.
+- Scoped static type checking with `mypy`.
+- Root `CONTEXT.md` glossary for core Felts terms.
+- ADR for raw landing design: `docs/adr/0001-raw-landing-design.md`.
 - Local Postgres as the first runnable warehouse target.
+- One generic raw landing table: `raw.raw_records`.
+- `raw.raw_records` as a TimescaleDB hypertable on `extracted_at`.
 
 ## Scope
 
-- Create `pipeline/core/extractors/base_extractor.py`.
-- Create `pipeline/core/loaders/base_loader.py`.
-- Create `pipeline/core/loaders/postgres_loader.py`.
-- Create `pipeline/core/loaders/factory.py`.
-- Create `pipeline/core/loaders/writer.py`.
-- Create `pipeline/core/schemas/raw_record.py`.
-- Create `pipeline/core/schemas/registry.py`.
-- Create `pipeline/config/settings.py`.
+- Create `src/felts/core/extractors/base.py`.
+- Create `src/felts/core/schemas/extracted_record.py`.
+- Create `src/felts/core/loaders/base.py`.
+- Create `src/felts/core/loaders/postgres.py`.
+- Create `src/felts/core/loaders/factory.py`.
+- Create `src/felts/core/loaders/writer.py`.
+- Create `src/felts/core/schemas/raw_record.py`.
+- Create `src/felts/core/schemas/registry.py`.
+- Create `src/felts/core/exceptions.py`.
+- Extend `src/felts/config/settings.py`.
+- Add a plain SQL bootstrap file for the generic raw landing table.
 - Add local Postgres configuration needed to exercise the first loader.
+- Add raw landing table settings with defaults: `FELTS_RAW_SCHEMA=raw` and `FELTS_RAW_TABLE=raw_records`.
+- Add loader batch size setting with default: `FELTS_LOADER_BATCH_SIZE=1000`.
+- Extend scaffold files from Phase 00 where Phase 01 requires it, such as `pyproject.toml`, `Makefile`, `.env.example`, and Postgres SQL init files.
+- Define `raw.raw_records` with metadata columns plus `payload JSONB`:
+  - `id text primary key`
+  - `source text not null`
+  - `entity text not null`
+  - `source_record_id text`
+  - `observed_at timestamptz`
+  - `extracted_at timestamptz not null`
+  - `loaded_at timestamptz not null default now()`
+  - `batch_id text not null`
+  - `schema_name text`
+  - `schema_version text`
+  - `is_valid boolean not null`
+  - `validation_errors jsonb not null default '[]'::jsonb`
+  - `payload jsonb not null`
+  - `check (source ~ '^[a-z0-9_]+$')`
+  - `check (entity ~ '^[a-z0-9_]+$')`
+  - `check (jsonb_typeof(payload) = 'object')`
+  - `check (jsonb_typeof(validation_errors) = 'array')`
+- Add minimal raw table indexes:
+  - primary key on `id`
+  - index on `(source, entity, extracted_at desc)`
+  - index on `batch_id`
 
 ## Acceptance Criteria
 
 - A test can create a valid `RawRecord`.
+- A test can create a valid `ExtractedRecord`.
+- A test rejects invalid `source` or `entity` identifiers.
+- The writer path can convert an `ExtractedRecord` into a `RawRecord`.
+- The writer path assigns a `batch_id` when an `ExtractedRecord` does not include one.
+- `RawWriter.write(...)` uses one batch ID across the call when no record-level batch ID is supplied.
+- `RawWriter.write(..., batch_id=...)` applies the explicit batch ID to records without one and rejects records with conflicting batch IDs.
+- `RawWriter` chunks loader writes by configured batch size and aggregates counts into one `WriteResult`.
+- `RawWriter.write(...)` processes an iterable of extracted records without materializing the full input at once.
+- The writer path returns a result with batch ID, received count, valid count, invalid count, loaded count, skipped count, failed count, and errors.
+- The loader returns a persistence-focused `LoadResult`; the writer returns a validation/orchestration-focused `WriteResult`.
+- Result errors include record ID when available, source, entity, stage, message, and optional details.
+- A test can derive the same raw record ID for the same source, entity, source record ID, observation timestamp, and payload.
+- A test proves raw record ID generation does not change when only `batch_id` changes.
+- A test proves raw record ID generation does not change when only `extracted_at` changes and `source_record_id` or `observed_at` exists.
+- A test proves canonical payload hash is stable across JSON key order and formatting differences without coercing values.
+- A test can create a raw record with `is_valid = false` and validation error details.
+- A test proves Pydantic validation errors are converted into normalized Felts validation error objects.
 - A test can register and retrieve a Pydantic schema by `source` and `entity`.
+- A test proves duplicate schema registration for the same `source + entity` raises `ValidationSetupError`.
+- Schema registry tests use test-only schemas rather than real source schemas.
+- A registered schema can provide `schema_name` and `schema_version` metadata for raw records.
+- A writer test can land a record when no schema is registered for its `source + entity`.
+- A writer test validates payloads when a schema is registered for its `source + entity`.
 - A test can instantiate the loader factory for `postgres`.
+- Loader factory tests verify settings are translated into explicit loader connection configuration.
+- Settings tests verify raw landing table defaults resolve to `raw.raw_records`.
 - A local Postgres table can receive a raw JSON payload through the writer path.
+- Integration tests assume local Docker Postgres is already running through `make db-up`.
+- `mypy` runs against `src/felts` and the Phase 01 tests.
+- `make typecheck` runs the configured type checker.
+- `make test` runs the fast test suite.
+- `make test-integration` runs DB-backed integration tests and requires local Docker Postgres.
+- `make check` includes `typecheck` and the DB-backed integration path after ensuring Postgres is running.
+- `CONTEXT.md` defines the canonical meanings of `Source`, `Entity`, `ExtractedRecord`, `RawRecord`, `Batch`, `Writer`, `Loader`, and `Schema Registry`.
+- The Postgres loader writes batches synchronously through `psycopg`.
+- The Postgres loader treats deterministic ID conflicts as skipped records, not updates.
+- The Postgres loader writes each batch in one transaction; deterministic ID conflicts are skipped, while true database failures roll back the loader batch.
+- Raw landing table creation is owned by a plain SQL bootstrap file, not by loader runtime code, dbt, or Alembic.
+- The first raw landing implementation uses one generic `raw.raw_records` table rather than source-specific raw tables.
+- `raw.raw_records` is initialized as a TimescaleDB hypertable using `extracted_at` as the time dimension.
 - Core modules contain no source-specific logic.
+- Extractors return `ExtractedRecord`; validation and writer code convert extracted records into `RawRecord`; loaders write `RawRecord`.
+- Base extractor contract returns `Iterable[ExtractedRecord]` so implementations can use lists or generators without introducing streaming infrastructure.
+- Callers use `RawWriter.write(records)` rather than manually composing registry lookup, validation, identity generation, raw record construction, and loader calls.
+- `RawWriter` accepts mixed `source/entity` records in one call; each record keeps its own identifiers and schema validation uses per-record registry lookup.
+- Explicit writer-level `batch_id` is allowed, but conflicting record-level batch IDs fail fast instead of being silently rewritten.
+- Loader batch size is configurable and defaults to `1000`; result counts aggregate across chunks.
+- `RawWriter.write(...)` is chunk-atomic, not whole-call atomic, for lazy iterables; earlier committed chunks remain committed if a later chunk fails.
+- Conflicting record-level batch IDs are treated as input misuse and raise a clear exception when encountered.
+- `SchemaRegistry` is explicitly passed into `RawWriter`; no global registry or singleton is introduced in Phase 01.
+- Loader factory reads project settings and constructs loaders; loaders receive concrete connection configuration and do not read global settings directly.
+- Raw landing table name is settings-backed with canonical defaults of `raw.raw_records`.
+- Missing schemas do not block raw landing; registered schemas are used to populate validation status and schema metadata.
+- `validation_errors` stores normalized objects with path, message, and type rather than raw Pydantic error internals.
+- `validation_errors` is always an array: empty for valid records and populated for invalid records.
+- Phase 01 registry lookup is `source + entity -> current schema`; historical schema replay is deferred.
+- Registry registration accepts `schema_name` and `schema_version` metadata alongside the Pydantic model.
+- `schema_version` is stored and handled as text/string, not integer.
+- Duplicate schema registration for the same `source + entity` is rejected by default; Phase 01 does not provide an override/update API.
+- `source` and `entity` are plain strings that must already be lowercase snake_case, non-empty, bounded length, and limited to `[a-z0-9_]`; invalid casing or separators are rejected rather than auto-normalized.
+- Python validation enforces max lengths: `source` and `entity` 64, `source_record_id` 512, `batch_id` 128, `schema_name` 128, and `schema_version` 64.
+- `batch_id` is optional on `ExtractedRecord` but required on `RawRecord`; the writer guarantees it before loading.
+- `batch_id` is traceability metadata and is excluded from deterministic raw record ID generation.
+- Deterministic raw record identity uses `source`, `entity`, `source_record_id` when present, `observed_at` when present, and canonical payload hash; `extracted_at` is used only as a fallback when both `source_record_id` and `observed_at` are missing.
+- Canonical payload hash sorts JSON keys and uses stable compact formatting without coercing payload values.
+- Writer input is a batch of extracted records; writer output reports per-record outcomes instead of failing the whole batch for schema-invalid payloads.
+- `extracted_at` is always required and represents ingestion/extraction time; `observed_at` is optional and represents the source or domain event time when available.
+- `extracted_at` and `observed_at` when present must be timezone-aware datetimes; generated `extracted_at` values default to UTC.
+- Extractors must resolve naive source timestamps to an explicit timezone before emitting `ExtractedRecord`.
+- `source_record_id` is optional; extractors should provide it only when the source has a real stable identifier and should not invent unstable row-number IDs.
+- `source_record_id` accepts arbitrary source-provided text up to its Python-side length limit; it is not constrained to the `source`/`entity` identifier regex.
+- `payload` is preserved as received from the extractor after transport-to-JSON adaptation; the writer validates and wraps but does not rename fields, strip nulls, coerce values, or otherwise reshape payload content.
+- `payload` must be a JSON object/mapping for each record; extractors split API arrays or CSV rows into one `ExtractedRecord` per object.
+- Raw rows are immutable; deterministic ID conflicts use `ON CONFLICT DO NOTHING` and are reported as skipped/conflict counts.
+- `LoadResult` reports database insert outcomes such as inserted, skipped/conflict, and failed counts; `WriteResult` reports writer-level outcomes such as received, valid, invalid, loaded, skipped, failed, and errors.
+- Schema-invalid records that are successfully inserted with `is_valid = false` count toward both `invalid_count` and `loaded_count`.
+- Per-record validation and load failures are represented in typed result error objects; unrecoverable setup failures can still raise exceptions.
+- Shared exceptions include `FeltsError`, `ConfigurationError`, `ValidationSetupError`, `WriterInputError`, and `LoaderError`.
+- Exceptions are for caller misuse or infrastructure/setup failure; per-record validation and load failures remain result errors.
 - Phase 00 project scaffolding remains unchanged except for adding required dependencies or configuration.
+- The archived Phase 00 doc remains historical; Phase 01 may extend scaffold files needed for core contracts.
 
 ## Out of Scope
 
 - BigQuery, Snowflake, and ClickHouse implementations.
+- Source-specific CoinGecko or CSV import schema modules.
 - Prefect deployments and automations.
 - dbt transformations.
+- dbt source declarations for raw tables.
+- DB-backed integration tests in GitHub Actions.
 - Streaming extraction.
+- Pagination, retry, and rate-limit abstractions for extractors.
 - Multi-target fan-out.
+- TimescaleDB chunk tuning, compression, and retention policies.
+- JSONB GIN indexes, `observed_at` indexes, and source-specific raw indexes.
+- Async loaders and bulk-copy throughput optimization.
+- Versioned schema lookup and historical schema replay.
+- CLI commands for writing or importing records.
+- Alembic or another migration framework.
+- Test-managed Docker lifecycle.
+- Structured logging frameworks, JSON log formatting, and global logging configuration.
 
 ## Grill Questions
 
 - Is Postgres definitely the first target, or should the first target be DuckDB for local development speed?
 - Should raw table creation live in the loader, migrations, or dbt/source bootstrap scripts?
 - Should the raw record ID be random UUID, deterministic hash, or loader-specific?
+  - Decision: deterministic hash for ingestion idempotency.
+  - Default identity inputs: `source`, `entity`, `source_record_id` when present, `observed_at` when present, and canonical payload hash.
+  - `extracted_at` is used as an identity fallback only when both `source_record_id` and `observed_at` are missing.
+  - This is separate from analytical dedup, which remains per-model logic in dbt staging.
 - Should invalid records be loaded with `is_valid = false`, or rejected before landing?
+  - Decision: land schema-invalid but structurally loadable payloads with `is_valid = false` and validation error details.
+  - Payloads that cannot be represented as raw JSON are rejected before database insert.

@@ -1,0 +1,3 @@
+# Raw Landing Design
+
+Felts lands source data into one generic `raw.raw_records` table so extractors and loaders share a stable ingestion contract before source-specific transforms exist. The table is a TimescaleDB hypertable on `extracted_at`, uses deterministic immutable raw record IDs with `ON CONFLICT DO NOTHING`, and stores schema-invalid but JSON-loadable payloads with validation metadata so retries are idempotent and raw evidence is preserved. Table creation is owned by a plain SQL bootstrap file rather than loader runtime code, dbt, or a migration framework to keep the Phase 01 foundation explicit and lightweight.
