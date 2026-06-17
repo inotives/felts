@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "felts"
+version = "0.1.0"
+description = "Financial ELT Stacks"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pandas>=2.2.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "ruff>=0.8.0",
+]
+orchestration = [
+    "prefect>=3.1.0",
+    "prefect-dbt>=0.6.0",
+]
+dbt = [
+    "dbt-core>=1.8.0",
+    "dbt-postgres>=1.8.0",
+]
+postgres = [
+    "asyncpg>=0.30.0",
+    "psycopg[binary]>=3.2.0",
+]
+finance = [
+    "ccxt>=4.4.0",
+    "statsmodels>=0.14.0",
+    "yfinance>=0.2.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/felts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
