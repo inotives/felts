@@ -49,6 +49,7 @@ Establish the shared Felts contracts that every later source, loader, flow, and 
 - Local Postgres as the first runnable warehouse target.
 - One generic raw landing table: `raw.raw_records`.
 - `raw.raw_records` as a TimescaleDB hypertable on `extracted_at`.
+- Small `raw.raw_record_keys` table for id-only idempotency before hypertable insert.
 
 ## Scope
 
@@ -86,7 +87,8 @@ Establish the shared Felts contracts that every later source, loader, flow, and 
   - `check (jsonb_typeof(payload) = 'object')`
   - `check (jsonb_typeof(validation_errors) = 'array')`
 - Add minimal raw table indexes:
-  - primary key on `id`
+  - idempotency primary key on `raw.raw_record_keys.id`
+  - index on `raw.raw_records.id`
   - index on `(source, entity, extracted_at desc)`
   - index on `batch_id`
 
@@ -167,6 +169,7 @@ Establish the shared Felts contracts that every later source, loader, flow, and 
 - `payload` is preserved as received from the extractor after transport-to-JSON adaptation; the writer validates and wraps but does not rename fields, strip nulls, coerce values, or otherwise reshape payload content.
 - `payload` must be a JSON object/mapping for each record; extractors split API arrays or CSV rows into one `ExtractedRecord` per object.
 - Raw rows are immutable; deterministic ID conflicts use `ON CONFLICT DO NOTHING` and are reported as skipped/conflict counts.
+- Timescale-compatible idempotency is enforced through `raw.raw_record_keys` because `raw.raw_records` is a hypertable on `extracted_at`.
 - `LoadResult` reports database insert outcomes such as inserted, skipped/conflict, and failed counts; `WriteResult` reports writer-level outcomes such as received, valid, invalid, loaded, skipped, failed, and errors.
 - Schema-invalid records that are successfully inserted with `is_valid = false` count toward both `invalid_count` and `loaded_count`.
 - Per-record validation and load failures are represented in typed result error objects; unrecoverable setup failures can still raise exceptions.
