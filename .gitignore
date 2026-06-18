@@ -26,6 +26,7 @@ transforms/logs/
 
 # Docker and local data
 *.pid
+data/
 
 # Editors and OS files
 .DS_Store

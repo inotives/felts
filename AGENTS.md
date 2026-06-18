@@ -1,5 +1,36 @@
 # AGENT Guidelines
 
+## Project Phase Workflow
+
+Felts work is organized by implementation phases under `docs/phases/`, with completed phases archived under `docs/_archived/`.
+
+For each new phase:
+
+1. Start with `grill-with-docs`.
+   - Read the relevant phase markdown and existing project docs before asking questions.
+   - Ask one decision question at a time.
+   - Provide a recommended answer with each question.
+   - Update the phase markdown and ADRs as decisions are made.
+   - Create ADRs only for meaningful tradeoffs that future contributors would need to understand.
+
+2. Finish and commit the docs first.
+   - When grilling is complete, commit the updated docs on `main`.
+   - Push the docs commit to `origin/main`.
+   - Keep this separate from implementation commits.
+
+3. Start implementation from a new feature branch.
+   - Create the feature branch from the latest `main`.
+   - Implement according to the finalized phase docs.
+   - Keep changes scoped to the phase.
+   - Run the relevant checks and live tests described by the phase acceptance criteria.
+
+4. Complete the phase.
+   - Commit implementation work on the feature branch.
+   - Push the branch and provide PR notes.
+   - After the PR lands, checkout `main` and pull.
+   - Move the completed phase doc from `docs/phases/` to `docs/_archived/`.
+   - Then begin grilling the next phase.
+
 ## Coding Guidelines
 
 Behavioral guidelines to reduce common LLM coding mistakes and LLM coding pitfalls.
