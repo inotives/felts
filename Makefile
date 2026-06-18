@@ -83,6 +83,18 @@ dbt-debug: db-up ## Verify dbt project/profile and Postgres connectivity.
 	FELTS_DBT_PROJECT_DIR=$(DBT_PROJECT_DIR) FELTS_DBT_PROFILES_DIR=$(DBT_PROFILES_DIR) \
 		$(UV) run dbt debug --project-dir $(DBT_PROJECT_DIR) --profiles-dir $(DBT_PROFILES_DIR)
 
+.PHONY: dbt-run
+dbt-run: db-up ## Build dbt transform models from local raw tables.
+	@test -f $(DBT_PROFILES_DIR)/profiles.yml || cp $(DBT_PROFILES_DIR)/profiles.yml.example $(DBT_PROFILES_DIR)/profiles.yml
+	FELTS_DBT_PROJECT_DIR=$(DBT_PROJECT_DIR) FELTS_DBT_PROFILES_DIR=$(DBT_PROFILES_DIR) \
+		$(UV) run dbt run --project-dir $(DBT_PROJECT_DIR) --profiles-dir $(DBT_PROFILES_DIR)
+
+.PHONY: dbt-test
+dbt-test: db-up ## Run dbt data tests.
+	@test -f $(DBT_PROFILES_DIR)/profiles.yml || cp $(DBT_PROFILES_DIR)/profiles.yml.example $(DBT_PROFILES_DIR)/profiles.yml
+	FELTS_DBT_PROJECT_DIR=$(DBT_PROJECT_DIR) FELTS_DBT_PROFILES_DIR=$(DBT_PROFILES_DIR) \
+		$(UV) run dbt test --project-dir $(DBT_PROJECT_DIR) --profiles-dir $(DBT_PROFILES_DIR)
+
 .PHONY: prefect-check
 prefect-check: ## Verify Prefect and project config load.
 	PREFECT_API_DATABASE_CONNECTION_URL=$(PREFECT_API_DATABASE_CONNECTION_URL) $(UV) run prefect version
@@ -100,6 +112,9 @@ coingecko-run: db-bootstrap ## Run the local CoinGecko EL slice into raw Postgre
 .PHONY: coingecko-smoke
 coingecko-smoke: db-bootstrap ## Run the opt-in live CoinGecko smoke path.
 	FELTS_RUN_LIVE_TESTS=1 $(UV) run felts coingecko run --entities coins_list global
+
+.PHONY: coingecko-transform
+coingecko-transform: coingecko-run dbt-run dbt-test ## Load CoinGecko raw data, then run dbt models and tests.
 
 .PHONY: check
 check: lint format-check typecheck test db-check test-integration dbt-debug prefect-check ## Run scaffold verification.

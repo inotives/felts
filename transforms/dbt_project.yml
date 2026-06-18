@@ -18,3 +18,11 @@ clean-targets:
 models:
   felts:
     +materialized: view
+    staging:
+      +materialized: view
+      coingecko:
+        +schema: coingecko
+    marts:
+      +materialized: table
+      coingecko:
+        +schema: coingecko

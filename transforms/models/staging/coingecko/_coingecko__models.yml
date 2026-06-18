@@ -1,0 +1,91 @@
+version: 2
+
+models:
+  - name: stg_coingecko__coins_list
+    description: Deduplicated CoinGecko coin identity records.
+    columns:
+      - name: coin_id
+        tests:
+          - not_null
+          - unique
+      - name: coin_symbol
+        tests:
+          - not_null
+      - name: coin_name
+        tests:
+          - not_null
+
+  - name: stg_coingecko__asset_platforms_list
+    description: Deduplicated CoinGecko asset platform identity records.
+    columns:
+      - name: asset_platform_id
+        tests:
+          - not_null
+          - unique
+      - name: asset_platform_name
+        tests:
+          - not_null
+
+  - name: stg_coingecko__global
+    description: CoinGecko global market snapshots.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - source_record_id
+              - extracted_at
+    columns:
+      - name: extracted_at
+        tests:
+          - not_null
+      - name: active_cryptocurrencies
+        tests:
+          - not_null
+
+  - name: stg_coingecko__global_defi
+    description: CoinGecko global DeFi snapshots.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - source_record_id
+              - extracted_at
+    columns:
+      - name: extracted_at
+        tests:
+          - not_null
+
+  - name: stg_coingecko__coins_markets
+    description: Deduplicated CoinGecko market snapshots by coin and observed timestamp.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - coin_id
+              - observed_at
+      - expression_is_true:
+          arguments:
+            expression: "current_price_usd is null or current_price_usd >= 0"
+    columns:
+      - name: coin_id
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+
+  - name: mart_coingecko__coins
+    description: Latest known CoinGecko coin identity reference table.
+    columns:
+      - name: coin_id
+        tests:
+          - not_null
+          - unique
+
+  - name: mart_coingecko__asset_platforms
+    description: Latest known CoinGecko asset platform reference table.
+    columns:
+      - name: asset_platform_id
+        tests:
+          - not_null
+          - unique
