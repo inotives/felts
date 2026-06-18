@@ -13,6 +13,7 @@ dependencies = [
     "pandas>=2.2.0",
     "pydantic>=2.10.0",
     "pydantic-settings>=2.6.0",
+    "PyYAML>=6.0.0",
 ]
 
 [project.scripts]
@@ -26,6 +27,7 @@ dev = [
     "ruff>=0.8.0",
 ]
 orchestration = [
+    "fastapi<0.137",
     "prefect>=3.1.0",
     "prefect-dbt>=0.6.0",
 ]

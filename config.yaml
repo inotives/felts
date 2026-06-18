@@ -1,0 +1,21 @@
+env: local
+
+prefect_api_url: http://127.0.0.1:4200/api
+prefect_work_pool: local
+prefect_work_pool_type: process
+prefect_work_queue: default
+
+dbt_project_dir: transforms
+dbt_profiles_dir: transforms
+dbt_command: dbt
+
+raw_schema: raw
+raw_table_prefix: raw
+loader_batch_size: 1000
+
+coingecko_base_url: https://api.coingecko.com/api/v3
+coingecko_request_timeout_seconds: 30
+coingecko_retry_max_attempts: 3
+coingecko_markets_vs_currency: usd
+coingecko_markets_per_page: 250
+coingecko_markets_max_pages: 1
