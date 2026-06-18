@@ -7,7 +7,7 @@ This breaks the Felts project specification into implementation phases ordered b
 0. [Phase 00 - Project Scaffolding](./_archived/phase_00_project_scaffolding.md)
 1. [Phase 01 - Core Contracts and Local Foundation](./_archived/phase_01_core_contracts.md)
 2. [Phase 02 - First Source Vertical Slice](./_archived/phase_02_first_source_vertical_slice.md)
-3. [Phase 03 - dbt Transform Foundation](./phases/phase_03_dbt_transform_foundation.md)
+3. [Phase 03 - dbt Transform Foundation](./_archived/phase_03_dbt_transform_foundation.md)
 4. [Phase 04 - Prefect Flow and Scheduling Foundation](./phases/phase_04_prefect_orchestration.md)
 5. [Phase 05 - Additional Source Patterns](./phases/phase_05_additional_source_patterns.md)
 6. [Phase 06 - Operational Hardening](./phases/phase_06_operational_hardening.md)

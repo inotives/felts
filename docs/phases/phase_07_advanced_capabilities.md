@@ -14,7 +14,7 @@ Track powerful but non-MVP capabilities so they are not accidentally designed in
 
 ## Scope
 
-- Design `stream_extractor.py` only after latency requirements are known.
+- Design `src/felts/core/extractors/stream.py` only after latency requirements are known.
 - Decide whether WebSocket and Kafka should remain inside Prefect micro-batches or move to a stream processor.
 - Add BigQuery, Snowflake, and ClickHouse loaders after Postgres is proven.
 - Add fan-out writer behavior only if simultaneous multi-target writes are required.

@@ -39,7 +39,7 @@ Felts, short for Financial ELT Stacks, is a modular, scalable ELT data pipeline 
 |---|---|---|
 | Landing | `raw` | Exact API response, JSONB, never modified |
 | Clean | `staging` | Unpacked, typed, one model per source entity |
-| Enriched | `intermediary` | Cross-source joins, business logic |
+| Enriched | `intermediate` | Cross-source joins, business logic |
 | Final | `mart` | Consumer-facing aggregated models |
 
 ---
@@ -91,118 +91,99 @@ Felts, short for Financial ELT Stacks, is a modular, scalable ELT data pipeline 
 ## 3. Full Project Structure
 
 ```
-pipeline/
+src/felts/
 ├── sources/                          # Feature-based: one folder per data source
 │   ├── coingecko/
-│   │   ├── __init__.py               # Self-registers schemas, exports extractor+loader
+│   │   ├── __init__.py
+│   │   ├── constants.py
 │   │   ├── extractor.py              # CoinGecko-specific extraction logic
-│   │   ├── loader.py                 # CoinGecko loader config + get_writer()
-│   │   ├── schemas/
-│   │   │   ├── coins_markets.py      # Pydantic model for /coins/markets
-│   │   │   ├── coins_list.py         # Pydantic model for /coins/list
-│   │   │   └── global_.py            # Pydantic model for /global
-│   │   └── tests/
-│   │       ├── test_extractor.py
-│   │       └── test_loader.py
+│   │   ├── runner.py                 # Source run orchestration
+│   │   ├── schemas.py                # Pydantic payload models
+│   │   ├── cli.py
+│   │   ├── flow.py                   # CoinGecko Prefect source flow
+│   │   ├── events.py                 # Raw completion event constants
+│   │   ├── deployments.py            # Entity deployments and schedules
+│   │   └── automations.py            # Entity event -> dbt transform chains
 │   │
 │   ├── coinmarketcap/
 │   │   ├── __init__.py
+│   │   ├── constants.py
 │   │   ├── extractor.py
-│   │   ├── loader.py
-│   │   ├── schemas/
-│   │   │   ├── listings_latest.py
-│   │   │   └── quotes_latest.py
-│   │   └── tests/
+│   │   ├── runner.py
+│   │   ├── schemas.py
+│   │   ├── flow.py
+│   │   ├── events.py
+│   │   ├── deployments.py
+│   │   └── automations.py
 │   │
 │   ├── defillama/
 │   │   ├── __init__.py
-│   │   ├── extractor.py              # GraphQL extractor
-│   │   ├── loader.py
-│   │   ├── schemas/
-│   │   │   └── protocols.py
-│   │   └── tests/
+│   │   ├── constants.py
+│   │   ├── extractor.py              # GraphQL extraction logic
+│   │   ├── runner.py
+│   │   ├── schemas.py
+│   │   ├── flow.py
+│   │   ├── events.py
+│   │   ├── deployments.py
+│   │   └── automations.py
 │   │
 │   └── csv_import/
 │       ├── __init__.py
-│       ├── extractor.py              # CSV file extractor
-│       ├── loader.py
-│       ├── schemas/
-│       │   └── import_record.py
-│       └── tests/
+│       ├── extractor.py              # CSV file extraction logic
+│       ├── runner.py
+│       ├── schemas.py
+│       ├── flow.py
+│       ├── events.py
+│       ├── deployments.py
+│       └── automations.py
 │
-├── core/                             # Shared transport layer — zero source knowledge
+├── core/                             # Shared boundaries with zero source knowledge
 │   ├── extractors/
-│   │   ├── base_extractor.py         # Abstract base + ExtractorConfig + ExtractedRecord
-│   │   ├── rest_extractor.py         # HTTP client, auth, retry, pagination strategies
-│   │   ├── graphql_extractor.py      # GraphQL client, cursor pagination
-│   │   ├── csv_extractor.py          # File reader, batch chunking
-│   │   └── stream_extractor.py       # WebSocket / Kafka consumer
+│   │   ├── base.py                   # Abstract extractor contract
+│   │   ├── rest.py                   # HTTP client, retry, response handling
+│   │   ├── graphql.py                # GraphQL client, cursor pagination
+│   │   ├── csv.py                    # File reader, batch chunking
+│   │   └── stream.py                 # Deferred WebSocket / Kafka consumer
 │   ├── loaders/
-│   │   ├── base_loader.py            # Abstract base + LoaderConfig
-│   │   ├── postgres_loader.py        # asyncpg implementation
-│   │   ├── bigquery_loader.py        # google-cloud-bigquery implementation
-│   │   ├── snowflake_loader.py       # snowflake-connector implementation
-│   │   ├── clickhouse_loader.py      # clickhouse-connect implementation
-│   │   ├── factory.py                # target name → correct loader class
+│   │   ├── base.py                   # Loader result contracts
+│   │   ├── postgres.py               # Postgres raw loader
+│   │   ├── factory.py                # target name -> correct loader class
 │   │   └── writer.py                 # validation + RawRecord wrapping before load
 │   └── schemas/
-│       ├── raw_record.py             # Universal raw storage model (all sources)
-│       └── registry.py               # source+entity → Pydantic model map
+│       ├── extracted_record.py
+│       ├── raw_record.py
+│       └── registry.py               # source+entity -> Pydantic model map
 │
-├── flows/                            # Prefect flows — thin wiring of extract → load
-│   ├── sources/
-│   │   ├── coingecko_flow.py
-│   │   ├── coinmarketcap_flow.py
-│   │   ├── defillama_flow.py
-│   │   └── csv_import_flow.py
-│   ├── transform_flow.py             # Scoped dbt runs per layer/tag
-│   └── master_flow.py                # Runs all EL flows then triggers dbt
+├── flows/                            # Shared Prefect flows only
+│   ├── transform.py                  # Scoped dbt run/test flow
+│   └── master.py                     # Manual run-anytime orchestration entry point
 │
-├── schedules/                        # Feature-based: one folder per source
-│   ├── coingecko/
-│   │   ├── __init__.py
-│   │   ├── events.py                 # Coingecko event name constants
-│   │   ├── deployments.py            # Cron schedules + dbt deployments
-│   │   └── automations.py            # Event → flow trigger chains
-│   ├── coinmarketcap/
-│   │   ├── events.py
-│   │   ├── deployments.py
-│   │   └── automations.py
-│   ├── defillama/
-│   │   ├── events.py
-│   │   ├── deployments.py
-│   │   └── automations.py
-│   ├── shared/
-│   │   ├── base_deployment.py        # Reusable deployment builder helper
-│   │   ├── base_automation.py        # Reusable automation builder helper
-│   │   └── global_events.py          # Cross-source events
-│   └── orchestrator.py               # Single entry point — registers all sources
+├── schedules/
+│   ├── helpers.py                    # Shared deployment/automation helpers
+│   └── orchestrator.py               # Single entry point — registers source features
 │
-├── transforms/                       # dbt project
-│   ├── dbt_project.yml
-│   ├── profiles.yml
-│   ├── packages.yml
-│   ├── models/
-│   │   ├── raw/                      # Views over loader tables, expose to dbt lineage
-│   │   ├── staging/                  # Unpack JSONB → typed columns, per source entity
-│   │   │   ├── coingecko/
-│   │   │   ├── coinmarketcap/
-│   │   │   └── defillama/
-│   │   ├── intermediary/             # Cross-source joins, enrichment, business logic
-│   │   └── mart/                     # Final consumer models
-│   │       ├── finance/
-│   │       └── defi/
-│   ├── tests/
-│   └── macros/
-│       ├── generate_schema_name.sql
-│       └── safe_cast.sql
-│
-├── config/
-│   └── settings.py                   # Pydantic BaseSettings — all env vars typed
-│
-└── tests/                            # Top-level integration tests
-    ├── test_pipeline_integration.py
-    └── conftest.py
+└── config/
+    └── settings.py                   # Pydantic BaseSettings — all env vars typed
+
+transforms/                           # dbt project
+├── dbt_project.yml
+├── profiles.yml
+├── models/
+│   ├── sources/                      # dbt source definitions over raw entity tables
+│   ├── staging/                      # Unpack JSONB -> typed columns, per source entity
+│   │   ├── coingecko/
+│   │   ├── coinmarketcap/
+│   │   └── defillama/
+│   ├── intermediate/                 # Cross-source joins, enrichment, business logic
+│   └── marts/                        # Final consumer models
+│       ├── finance/
+│       └── defi/
+├── tests/
+└── macros/
+    ├── generate_schema_name.sql
+    └── safe_cast.sql
+
+tests/                                # Top-level unit and integration tests
 ```
 
 ---
@@ -214,7 +195,7 @@ The core layer owns transport mechanics only. It has no knowledge of any specifi
 ### 4.1 Base Extractor
 
 ```python
-# core/extractors/base_extractor.py
+# src/felts/core/extractors/base.py
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import AsyncIterator
@@ -261,10 +242,11 @@ class BaseExtractor(ABC):
 The REST base class owns all HTTP mechanics. Source plugins pick which pagination strategy to use.
 
 ```python
-# core/extractors/rest_extractor.py
+# src/felts/core/extractors/rest.py
 import httpx, asyncio
 from typing import AsyncIterator
-from .base_extractor import BaseExtractor, ExtractorConfig, ExtractedRecord
+from .base import BaseExtractor
+from felts.core.schemas import ExtractedRecord
 
 class RestExtractor(BaseExtractor):
     """
@@ -375,7 +357,7 @@ class RestExtractor(BaseExtractor):
 # core/loaders/base_loader.py
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from core.extractors.base_extractor import ExtractedRecord
+from felts.core.schemas import ExtractedRecord
 
 @dataclass
 class LoaderConfig:
@@ -423,7 +405,7 @@ The writer sits between flows and loaders. It validates records, wraps them into
 # core/loaders/writer.py
 import uuid
 from datetime import datetime, timezone
-from core.extractors.base_extractor import ExtractedRecord
+from felts.core.schemas import ExtractedRecord
 from core.schemas.raw_record import RawRecord
 from core.schemas.registry import registry
 from core.loaders.base_loader import BaseLoader
@@ -879,8 +861,8 @@ registry.register("coingecko", "global",        GlobalMarket)
 
 ```python
 # sources/coingecko/extractor.py
-from core.extractors.rest_extractor import RestExtractor
-from core.extractors.base_extractor import ExtractorConfig, ExtractedRecord
+from felts.core.extractors.rest import RestClient
+from felts.core.schemas import ExtractedRecord
 from typing import AsyncIterator
 
 class CoinGeckoExtractor(RestExtractor):
@@ -977,8 +959,8 @@ class CoinMarket(BaseModel):
 
 ```python
 # sources/coinmarketcap/extractor.py
-from core.extractors.rest_extractor import RestExtractor
-from core.extractors.base_extractor import ExtractedRecord
+from felts.core.extractors.rest import RestClient
+from felts.core.schemas import ExtractedRecord
 from typing import AsyncIterator
 
 class CoinMarketCapExtractor(RestExtractor):
@@ -1024,8 +1006,8 @@ class CoinMarketCapExtractor(RestExtractor):
 
 ```python
 # sources/defillama/extractor.py
-from core.extractors.graphql_extractor import GraphQLExtractor
-from core.extractors.base_extractor import ExtractedRecord
+from felts.core.extractors.graphql import GraphQLExtractor
+from felts.core.schemas import ExtractedRecord
 from typing import AsyncIterator
 
 class DefiLlamaExtractor(GraphQLExtractor):
@@ -1057,8 +1039,8 @@ class DefiLlamaExtractor(GraphQLExtractor):
 
 ```python
 # sources/csv_import/extractor.py
-from core.extractors.csv_extractor import CsvExtractor
-from core.extractors.base_extractor import ExtractedRecord
+from felts.core.extractors.csv import CsvExtractor
+from felts.core.schemas import ExtractedRecord
 from typing import AsyncIterator
 
 class CsvImportExtractor(CsvExtractor):
@@ -1086,14 +1068,15 @@ class CsvImportExtractor(CsvExtractor):
 Flows are thin wiring only — they connect extractors to loaders and emit events. No business logic lives here.
 
 ```python
-# flows/sources/coingecko_flow.py
+# src/felts/sources/coingecko/flow.py
 from prefect import flow, task, get_run_logger
 from prefect.events import emit_event
 from prefect.artifacts import create_table_artifact
-from sources.coingecko import CoinGeckoExtractor, get_coingecko_writer
-from core.extractors.base_extractor import ExtractorConfig
-from schedules.coingecko.events import COINGECKO_EVENTS
-from config.settings import settings
+from felts.config.settings import settings
+from felts.core.extractors.base import ExtractorConfig
+from felts.sources.coingecko.events import COINGECKO_EVENTS
+from felts.sources.coingecko.extractor import CoinGeckoExtractor
+from felts.sources.coingecko.runner import run_coingecko_source
 
 @task(retries=3, retry_delay_seconds=60, task_run_name="extract-load-{entity}")
 async def extract_and_load(entity: str) -> dict:
@@ -1188,25 +1171,25 @@ async def dbt_staging_coingecko_assets_flow(full_refresh: bool = False):
         raise RuntimeError(f"dbt staging failed: {run}, {test}")
 
 
-@flow(name="dbt-intermediary-coins")
-async def dbt_intermediary_coins_flow():
+@flow(name="dbt-intermediate-coins")
+async def dbt_intermediate_coins_flow():
     from schedules.coingecko.events import COINGECKO_EVENTS
-    run  = await run_dbt_models("tag:intermediary_coins")
-    test = await run_dbt_tests("tag:intermediary_coins")
+    run  = await run_dbt_models("tag:intermediate_coins")
+    test = await run_dbt_tests("tag:intermediate_coins")
     if run["success"] and test["passed"]:
         emit_event(
-            event=COINGECKO_EVENTS.DBT_INTERMEDIARY_COMPLETED,
-            resource={"prefect.resource.id": "dbt.intermediary.coins"},
+            event=COINGECKO_EVENTS.DBT_INTERMEDIATE_COMPLETED,
+            resource={"prefect.resource.id": "dbt.intermediate.coins"},
         )
     else:
-        raise RuntimeError("Intermediary coins models failed")
+        raise RuntimeError("Intermediate coins models failed")
 
 
 @flow(name="dbt-mart-finance")
 async def dbt_mart_finance_flow():
     from schedules.coingecko.events import COINGECKO_EVENTS
-    run  = await run_dbt_models("mart/finance")
-    test = await run_dbt_tests("mart/finance")
+    run  = await run_dbt_models("marts/finance")
+    test = await run_dbt_tests("marts/finance")
     if run["success"]:
         emit_event(
             event=COINGECKO_EVENTS.DBT_MART_COMPLETED,
@@ -1240,12 +1223,12 @@ class CoinGeckoEvents:
     NO_NEW_ASSETS               = "coingecko.assets.no_new_assets"
 
     DBT_STAGING_COMPLETED       = "coingecko.dbt.staging.completed"
-    DBT_INTERMEDIARY_COMPLETED  = "coingecko.dbt.intermediary.completed"
+    DBT_INTERMEDIATE_COMPLETED  = "coingecko.dbt.intermediate.completed"
     DBT_MART_COMPLETED          = "coingecko.dbt.mart.completed"
 
     ASSETS_FAILED               = "coingecko.assets.failed"
     DBT_STAGING_FAILED          = "coingecko.dbt.staging.failed"
-    DBT_INTERMEDIARY_FAILED     = "coingecko.dbt.intermediary.failed"
+    DBT_INTERMEDIATE_FAILED     = "coingecko.dbt.intermediate.failed"
 
 COINGECKO_EVENTS = CoinGeckoEvents()
 ```
@@ -1261,7 +1244,7 @@ from flows.sources.coingecko_flow import (
 )
 from flows.transform_flow import (
     dbt_staging_coingecko_assets_flow,
-    dbt_intermediary_coins_flow,
+    dbt_intermediate_coins_flow,
     dbt_mart_finance_flow,
 )
 from schedules.shared.base_deployment import build_deployment
@@ -1293,16 +1276,16 @@ DBT_DEPLOYMENTS = [
         "parameters":   {"full_refresh": False},
     },
     {
-        "flow":         dbt_intermediary_coins_flow,
-        "name":         "dbt-intermediary-coins",
-        "description":  "Intermediary coin enrichment. Triggered by staging.",
+        "flow":         dbt_intermediate_coins_flow,
+        "name":         "dbt-intermediate-coins",
+        "description":  "Intermediate coin enrichment. Triggered by staging.",
         "schedules":    [],
-        "tags":         ["coingecko", "dbt", "intermediary"],
+        "tags":         ["coingecko", "dbt", "intermediate"],
     },
     {
         "flow":         dbt_mart_finance_flow,
         "name":         "dbt-mart-finance",
-        "description":  "Finance mart models. Triggered by intermediary.",
+        "description":  "Finance mart models. Triggered by intermediate.",
         "schedules":    [],
         "tags":         ["coingecko", "dbt", "mart"],
     },
@@ -1330,7 +1313,7 @@ Event chain:
       │
       ├─ new assets detected
       │       └──▶ dbt-staging-coingecko-assets
-      │                   └──▶ dbt-intermediary-coins
+      │                   └──▶ dbt-intermediate-coins
       │                               └──▶ dbt-mart-finance
       │
       └─ no new assets → chain stops
@@ -1350,19 +1333,19 @@ AUTOMATIONS = [
         )],
     ),
     Automation(
-        name="coingecko__staging-done__trigger-intermediary",
-        description="Staging complete → run intermediary enrichment",
+        name="coingecko__staging-done__trigger-intermediate",
+        description="Staging complete → run intermediate enrichment",
         trigger=EventTrigger(
             expect={COINGECKO_EVENTS.DBT_STAGING_COMPLETED},
             within=600,
         ),
-        actions=[RunDeployment(deployment_name="dbt-intermediary-coins/prod")],
+        actions=[RunDeployment(deployment_name="dbt-intermediate-coins/prod")],
     ),
     Automation(
-        name="coingecko__intermediary-done__trigger-mart",
-        description="Intermediary complete → run finance mart",
+        name="coingecko__intermediate-done__trigger-mart",
+        description="Intermediate complete → run finance mart",
         trigger=EventTrigger(
-            expect={COINGECKO_EVENTS.DBT_INTERMEDIARY_COMPLETED},
+            expect={COINGECKO_EVENTS.DBT_INTERMEDIATE_COMPLETED},
             within=600,
         ),
         actions=[RunDeployment(deployment_name="dbt-mart-finance/prod")],
@@ -1374,7 +1357,7 @@ AUTOMATIONS = [
             expect={
                 COINGECKO_EVENTS.ASSETS_FAILED,
                 COINGECKO_EVENTS.DBT_STAGING_FAILED,
-                COINGECKO_EVENTS.DBT_INTERMEDIARY_FAILED,
+                COINGECKO_EVENTS.DBT_INTERMEDIATE_FAILED,
             },
             within=60,
         ),
@@ -1446,10 +1429,10 @@ models:
       +materialized: view
       +tags: ["staging"]
 
-    intermediary:
-      +schema: intermediary
+    intermediate:
+      +schema: intermediate
       +materialized: table
-      +tags: ["intermediary"]
+      +tags: ["intermediate"]
       +post-hook: "ANALYZE {{ this }}"
 
     mart:
@@ -1462,7 +1445,7 @@ models:
 ### 8.2 Raw Model (View Over Loader Table)
 
 ```sql
--- models/raw/coingecko/raw_coins_markets.sql
+-- models/sources/coingecko/raw_coins_markets.sql
 SELECT
     id, source, entity, raw_data,
     is_valid, validation_errors,
@@ -1530,10 +1513,10 @@ FROM deduped
 
 Staging deduplication is written directly in each dbt model using that model's natural key and ordering rules. If the same pattern repeats across many models, this can later be extracted into a shared dbt macro.
 
-### 8.4 Intermediary Model (Cross-source Join)
+### 8.4 Intermediate Model (Cross-source Join)
 
 ```sql
--- models/intermediary/int_coins__market_enriched.sql
+-- models/intermediate/int_coins__market_enriched.sql
 WITH coingecko AS (
     SELECT * FROM {{ ref('stg_coingecko__coins_markets') }}
 ),
@@ -1567,7 +1550,7 @@ LEFT JOIN defillama     dl  USING (symbol)
 ### 8.5 Mart Model (Consumer-facing)
 
 ```sql
--- models/mart/finance/mart_coins__summary.sql
+-- models/marts/finance/mart_coins__summary.sql
 WITH base AS (
     SELECT * FROM {{ ref('int_coins__market_enriched') }}
 )
@@ -1627,7 +1610,7 @@ class Settings(BaseSettings):
     # dbt schema names
     raw_schema:          str = "raw"
     staging_schema:      str = "staging"
-    intermediary_schema: str = "intermediary"
+    intermediate_schema: str = "intermediate"
     mart_schema:         str = "mart"
 
     class Config:
@@ -1673,13 +1656,13 @@ dbt_staging_coingecko_assets_flow
         │  emit: coingecko.dbt.staging.completed
         │
         ▼  [Prefect Automation fires]
-dbt_intermediary_coins_flow
-        │  dbt run --select tag:intermediary_coins
-        │  emit: coingecko.dbt.intermediary.completed
+dbt_intermediate_coins_flow
+        │  dbt run --select tag:intermediate_coins
+        │  emit: coingecko.dbt.intermediate.completed
         │
         ▼  [Prefect Automation fires]
 dbt_mart_finance_flow
-           dbt run --select mart/finance
+           dbt run --select marts/finance
            emit: coingecko.dbt.mart.completed
 ```
 
@@ -1702,17 +1685,16 @@ batch_id            TEXT                   groups records per flow run
 ### Adding a New Source — Checklist
 
 ```
-1.  mkdir sources/{source_name}/
-2.  create extractor.py        extend RestExtractor / GraphQLExtractor / CsvExtractor
-3.  create loader.py           get_loader(config) via factory
-4.  create schemas/{entity}.py Pydantic models per entity
-5.  create __init__.py         self-register schemas + export extractor/loader
-6.  create flows/sources/{source_name}_flow.py
-7.  mkdir schedules/{source_name}/
-8.  create events.py           event name constants
-9.  create deployments.py      cron schedules + dbt deployments
-10. create automations.py      event chains
-11. add one line to schedules/orchestrator.py
+1.  mkdir src/felts/sources/{source_name}/
+2.  create extractor.py        source-specific extraction logic
+3.  create runner.py           source run orchestration over writer/loader contracts
+4.  create schemas.py          Pydantic models per entity
+5.  create __init__.py         source package exports
+6.  create flow.py             source-specific Prefect source flow
+7.  create events.py           raw completion event constants
+8.  create deployments.py      entity deployments and schedules
+9.  create automations.py      event chains to dbt transform selectors
+10. add one line to src/felts/schedules/orchestrator.py
 ```
 
 Zero changes to `core/`, existing sources, or dbt models.
@@ -1727,7 +1709,7 @@ These items need further design decisions before implementation.
 
 ### 11.1 Streaming / Real-time Sources
 
-**Current state:** The `stream_extractor.py` base class is scaffolded but not fully designed.
+**Current state:** The `src/felts/core/extractors/stream.py` base class is deferred until streaming requirements are clear.
 
 **Questions to resolve:**
 - What is the acceptable latency for WebSocket / Kafka sources? Seconds (true streaming) or minutes (micro-batch)?

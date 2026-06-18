@@ -13,13 +13,13 @@ Expand Felts from one REST source into multiple source patterns while preserving
 
 ## Scope
 
-- Implement `pipeline/sources/coinmarketcap/`.
-- Implement `pipeline/sources/defillama/`.
+- Implement `src/felts/sources/coinmarketcap/`.
+- Implement `src/felts/sources/defillama/`.
 - Implement `src/felts/sources/csv_import/`.
-- Create `graphql_extractor.py`.
-- Create `csv_extractor.py`.
-- Add raw, staging, intermediary, and mart models only where needed to prove each source pattern.
-- Add source-specific schedules after each source works locally.
+- Create `src/felts/core/extractors/graphql.py`.
+- Create `src/felts/core/extractors/csv.py`.
+- Add raw, staging, intermediate, and mart models only where needed to prove each source pattern.
+- Add source-specific `flow.py`, `events.py`, `deployments.py`, and `automations.py` modules inside each source feature folder after each source works locally.
 
 ## Acceptance Criteria
 
@@ -27,7 +27,7 @@ Expand Felts from one REST source into multiple source patterns while preserving
 - GraphQL and CSV extraction reuse core abstractions without source-specific core changes.
 - CoinMarketCap secrets are loaded through settings or Prefect Blocks according to the Phase 06 decision.
 - CSV ingestion validates headers before load.
-- Cross-source joins are possible in the intermediary layer.
+- Cross-source joins are possible in the intermediate layer.
 
 ## Out of Scope
 

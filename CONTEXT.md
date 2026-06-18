@@ -40,6 +40,14 @@ _Avoid_: catalog, dbt sources
 One invocation that extracts and writes selected **Entities** for a **Source**, producing a source-level outcome summary.
 _Avoid_: job, flow, task
 
+**Entity Run**:
+The portion of a **Source Run** that extracts and writes one **Entity** for a **Source**, producing an entity-level outcome summary.
+_Avoid_: table run, endpoint run
+
+**Raw Completion Event**:
+An orchestration signal emitted after an **Entity Run** successfully lands raw data.
+_Avoid_: source completion event, dbt trigger
+
 **Source Schema**:
 A database namespace owned by one **Source** for source-specific raw and transformed models.
 _Avoid_: provider schema, raw schema
@@ -69,6 +77,8 @@ _Avoid_: primary key, dedup key
 - A **Batch** groups the **RawRecords** produced by one write operation.
 - A **Schema Registry** may validate **ExtractedRecords** before they become **RawRecords**.
 - A **Source Run** processes selected **Entities** for one **Source**.
+- An **Entity Run** processes one **Entity** within a **Source Run**.
+- A **Raw Completion Event** is emitted by a successful **Entity Run**.
 - A **Source Schema** contains **Raw Entity Tables** and source-specific transformed models for one **Source**.
 - A **Raw Entity Table** persists **RawRecords** for one **Entity**.
 - A **Staging Model** derives from raw source data and has one **Declared Grain**.
