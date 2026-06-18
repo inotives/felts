@@ -14,7 +14,7 @@ LoaderName = Literal["postgres"]
 class PostgresLoaderConfig:
     conninfo: str
     schema: str
-    table: str
+    table_prefix: str
 
 
 def postgres_loader_config_from_settings(settings: Settings) -> PostgresLoaderConfig:
@@ -24,7 +24,7 @@ def postgres_loader_config_from_settings(settings: Settings) -> PostgresLoaderCo
     return PostgresLoaderConfig(
         conninfo=_to_psycopg_conninfo(settings.database_url),
         schema=settings.raw_schema,
-        table=settings.raw_table,
+        table_prefix=settings.raw_table_prefix,
     )
 
 
@@ -33,7 +33,11 @@ def create_loader(settings: Settings, *, name: LoaderName = "postgres") -> Postg
         msg = f"unsupported loader: {name}"
         raise ConfigurationError(msg)
     config = postgres_loader_config_from_settings(settings)
-    return PostgresRawLoader(conninfo=config.conninfo, schema=config.schema, table=config.table)
+    return PostgresRawLoader(
+        conninfo=config.conninfo,
+        schema=config.schema,
+        table_prefix=config.table_prefix,
+    )
 
 
 def _to_psycopg_conninfo(database_url: str) -> str:

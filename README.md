@@ -35,6 +35,12 @@ make db-shell
 make dbt-debug
 make prefect-check
 make prefect-server
+make coingecko-run
 ```
 
 `make prefect-server` uses the local Dockerized Postgres database for Prefect metadata instead of SQLite.
+
+`make coingecko-run` loads the Phase 02 CoinGecko entities into source/entity raw tables,
+such as `coingecko.raw_coins_list`.
+Set `COINGECKO_API_KEY` in `.env` for authenticated demo API calls. Defaults are capped to one
+`coins_markets` page through `COINGECKO_MARKETS_MAX_PAGES=1`.

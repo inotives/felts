@@ -380,7 +380,8 @@ from core.extractors.base_extractor import ExtractedRecord
 @dataclass
 class LoaderConfig:
     target:         str             # "postgres" | "bigquery" | "snowflake" | "clickhouse"
-    schema:         str = "raw"
+    metadata_schema: str = "raw"
+    table_prefix:   str = "raw"
     batch_size:     int = 1000
     on_conflict:    str = "upsert"  # upsert | append | replace
 
@@ -408,7 +409,10 @@ class BaseLoader(ABC):
         ...
 
     def table_name(self, source: str, entity: str) -> str:
-        return f"{source}__{entity}"    # e.g. coingecko__coins_markets
+        return f"raw_{entity}"          # e.g. raw_coins_markets
+
+    def schema_name(self, source: str) -> str:
+        return source                   # e.g. coingecko
 ```
 
 ### 4.4 Writer — Validation Bridge
@@ -431,7 +435,7 @@ class DataWriter:
     async def write(self, record: ExtractedRecord) -> tuple[int, int]:
         """Returns (total_rows_written, new_rows)."""
         table = self.loader.table_name(record.source, record.entity)
-        schema = self.loader.config.schema
+        schema = self.loader.schema_name(record.source)
 
         if not await self.loader.table_exists(schema, table):
             await self.loader.create_raw_table(schema, table)
@@ -1458,12 +1462,12 @@ models:
 ### 8.2 Raw Model (View Over Loader Table)
 
 ```sql
--- models/raw/raw_coingecko__coins_markets.sql
+-- models/raw/coingecko/raw_coins_markets.sql
 SELECT
     id, source, entity, raw_data,
     is_valid, validation_errors,
     schema_version, loaded_at, batch_id
-FROM {{ source('raw_loader', 'coingecko__coins_markets') }}
+FROM {{ source('coingecko', 'raw_coins_markets') }}
 ```
 
 ### 8.3 Staging Model (Unpack + Type)
@@ -1471,7 +1475,7 @@ FROM {{ source('raw_loader', 'coingecko__coins_markets') }}
 ```sql
 -- models/staging/coingecko/stg_coingecko__coins_markets.sql
 WITH source AS (
-    SELECT * FROM {{ ref('raw_coingecko__coins_markets') }}
+    SELECT * FROM {{ ref('raw_coins_markets') }}
     WHERE is_valid = true
 ),
 unpacked AS (

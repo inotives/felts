@@ -31,7 +31,7 @@ Build one complete EL path from a real financial API into raw storage. CoinGecko
   - `global_defi`: `GET /global/decentralized_finance_defi`
   - `coins_markets`: `GET /coins/markets`
 - Implement validation through the shared writer.
-- Load batches into the generic `raw.raw_records` table with `source="coingecko"` and entity-specific `entity` values.
+- Load batches into source-specific schemas and entity-specific raw tables, such as `coingecko.raw_coins_list`, while keeping `source="coingecko"` and entity-specific `entity` metadata on each record.
 - Add unit tests for extractor pagination, schema validation, source entrypoint composition, and failure behavior.
 - Use `pytest-httpx` for mocked `httpx` HTTP responses in source tests.
 - Add one narrow integration test that runs mocked CoinGecko HTTP responses through `RawWriter` and `PostgresRawLoader` into dockerized Postgres.
@@ -46,10 +46,12 @@ Build one complete EL path from a real financial API into raw storage. CoinGecko
 
 ## Decisions
 
-- CoinGecko records use the Phase 01 generic raw landing table, `raw.raw_records`; Phase 02 does not create source-specific raw tables.
-- Source-specific relational tables are deferred to dbt staging models, such as `stg_coingecko__coins_markets`, in Phase 03.
+- CoinGecko records land in the `coingecko` source schema with one raw table per entity, such as `coingecko.raw_coins_list`, `coingecko.raw_global`, and `coingecko.raw_coins_markets`.
+- Raw entity tables share the same metadata and `payload JSONB` structure, so the writer contract remains generic even though physical storage is split by source and entity.
+- The shared `raw.raw_record_keys` table remains the global idempotency gate.
+- Source-specific analytical relational tables are still deferred to dbt staging models, such as `stg_coingecko__coins_markets`, in Phase 03.
 - Phase 02 remains EL-only and does not add dbt staging models.
-- Tests may query `raw.raw_records` directly only to verify that extracted records landed.
+- Tests may query source/entity raw tables directly only to verify that extracted records landed.
 - Reference-like CoinGecko entities such as `coins_list` and `asset_platforms_list` still load during each selected Phase 02 run.
 - Phase 02 does not add freshness checks or skip-if-recently-loaded logic.
 - CoinGecko source code lives under `src/felts/sources/coingecko/`.

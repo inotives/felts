@@ -93,5 +93,13 @@ prefect-server: db-up ## Start a local Prefect server backed by Dockerized Postg
 	PREFECT_API_DATABASE_CONNECTION_URL=$(PREFECT_API_DATABASE_CONNECTION_URL) \
 		$(UV) run prefect server start --host 0.0.0.0
 
+.PHONY: coingecko-run
+coingecko-run: db-bootstrap ## Run the local CoinGecko EL slice into raw Postgres.
+	$(UV) run felts coingecko run
+
+.PHONY: coingecko-smoke
+coingecko-smoke: db-bootstrap ## Run the opt-in live CoinGecko smoke path.
+	FELTS_RUN_LIVE_TESTS=1 $(UV) run felts coingecko run --entities coins_list global
+
 .PHONY: check
 check: lint format-check typecheck test db-check test-integration dbt-debug prefect-check ## Run scaffold verification.

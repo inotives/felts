@@ -19,3 +19,7 @@ class WriterInputError(FeltsError):
 
 class LoaderError(FeltsError):
     """Raised when a loader cannot complete a persistence operation."""
+
+
+class ExtractionError(FeltsError):
+    """Raised when a source extractor cannot complete a request or parse a response."""

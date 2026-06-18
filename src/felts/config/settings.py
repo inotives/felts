@@ -37,14 +37,26 @@ class Settings(BaseSettings):
     dbt_profiles_dir: Path = Field(default=Path("transforms"), alias="FELTS_DBT_PROFILES_DIR")
 
     raw_schema: str = Field(default="raw", alias="FELTS_RAW_SCHEMA")
-    raw_table: str = Field(default="raw_records", alias="FELTS_RAW_TABLE")
+    raw_table_prefix: str = Field(default="raw", alias="FELTS_RAW_TABLE_PREFIX")
     loader_batch_size: int = Field(default=1000, alias="FELTS_LOADER_BATCH_SIZE")
 
     coingecko_api_key: str | None = Field(default=None, alias="COINGECKO_API_KEY")
+    coingecko_base_url: str = Field(
+        default="https://api.coingecko.com/api/v3", alias="COINGECKO_BASE_URL"
+    )
+    coingecko_request_timeout_seconds: int = Field(
+        default=30, gt=0, alias="COINGECKO_REQUEST_TIMEOUT_SECONDS"
+    )
+    coingecko_retry_max_attempts: int = Field(default=3, ge=1, alias="COINGECKO_RETRY_MAX_ATTEMPTS")
+    coingecko_markets_vs_currency: str = Field(
+        default="usd", min_length=1, alias="COINGECKO_MARKETS_VS_CURRENCY"
+    )
+    coingecko_markets_per_page: int = Field(default=250, gt=0, alias="COINGECKO_MARKETS_PER_PAGE")
+    coingecko_markets_max_pages: int = Field(default=1, ge=1, alias="COINGECKO_MARKETS_MAX_PAGES")
 
     @property
     def raw_table_name(self) -> str:
-        return f"{self.raw_schema}.{self.raw_table}"
+        return f"<source>.{self.raw_table_prefix}_<entity>"
 
     def resolve_project_path(self, path: Path) -> Path:
         if path.is_absolute():
