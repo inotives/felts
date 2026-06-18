@@ -31,3 +31,6 @@ transforms/logs/
 .DS_Store
 .idea/
 .vscode/
+
+.cursor/
+.codegraph/

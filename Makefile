@@ -105,6 +105,19 @@ prefect-server: db-up ## Start a local Prefect server backed by Dockerized Postg
 	PREFECT_API_DATABASE_CONNECTION_URL=$(PREFECT_API_DATABASE_CONNECTION_URL) \
 		$(UV) run prefect server start --host 0.0.0.0
 
+.PHONY: prefect-worker
+prefect-worker: ## Start a local Prefect worker for the configured work pool.
+	@work_pool="$$( $(UV) run python -c "from felts.config import get_settings; print(get_settings().prefect_work_pool)" )"; \
+	work_queue="$$( $(UV) run python -c "from felts.config import get_settings; print(get_settings().prefect_work_queue)" )"; \
+	PREFECT_CLIENT_CSRF_SUPPORT_ENABLED=false \
+		$(UV) run prefect worker start --pool "$$work_pool" --work-queue "$$work_queue"
+
+.PHONY: prefect-register
+prefect-register: db-up ## Register local Prefect work pool, deployments, and automations.
+	PREFECT_API_DATABASE_CONNECTION_URL=$(PREFECT_API_DATABASE_CONNECTION_URL) \
+		PREFECT_CLIENT_CSRF_SUPPORT_ENABLED=false \
+		$(UV) run python -m felts.schedules.orchestrator
+
 .PHONY: coingecko-run
 coingecko-run: db-bootstrap ## Run the local CoinGecko EL slice into raw Postgres.
 	$(UV) run felts coingecko run

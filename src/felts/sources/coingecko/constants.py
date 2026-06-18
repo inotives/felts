@@ -20,6 +20,23 @@ SUPPORTED_ENTITIES: tuple[CoinGeckoEntity, ...] = (
     "coins_markets",
 )
 
+DBT_SELECTORS: dict[CoinGeckoEntity, str] = {
+    "coins_list": "stg_coingecko__coins_list+",
+    "asset_platforms_list": "stg_coingecko__asset_platforms_list+",
+    "global": "stg_coingecko__global+",
+    "global_defi": "stg_coingecko__global_defi+",
+    "coins_markets": "stg_coingecko__coins_markets+",
+}
+
+SCHEDULED_ENTITIES: tuple[CoinGeckoEntity, ...] = (
+    "coins_list",
+    "asset_platforms_list",
+    "global",
+    "global_defi",
+)
+
+COINGECKO_SOURCE_DEPLOYMENT_PREFIX = "coingecko"
+
 
 @dataclass(frozen=True)
 class CoinGeckoEndpoint:

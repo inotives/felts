@@ -2,7 +2,12 @@ from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    YamlConfigSettingsSource,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -13,6 +18,8 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
         populate_by_name=True,
+        yaml_file=REPO_ROOT / "config.yaml",
+        yaml_file_encoding="utf-8",
     )
 
     env: str = Field(default="local", alias="FELTS_ENV")
@@ -32,9 +39,13 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://prefect:prefect@localhost:5432/prefect",
         alias="PREFECT_API_DATABASE_CONNECTION_URL",
     )
+    prefect_work_pool: str = Field(default="local", alias="FELTS_PREFECT_WORK_POOL")
+    prefect_work_pool_type: str = Field(default="process", alias="FELTS_PREFECT_WORK_POOL_TYPE")
+    prefect_work_queue: str = Field(default="default", alias="FELTS_PREFECT_WORK_QUEUE")
 
     dbt_project_dir: Path = Field(default=Path("transforms"), alias="FELTS_DBT_PROJECT_DIR")
     dbt_profiles_dir: Path = Field(default=Path("transforms"), alias="FELTS_DBT_PROFILES_DIR")
+    dbt_command: str = Field(default="dbt", alias="FELTS_DBT_COMMAND")
 
     raw_schema: str = Field(default="raw", alias="FELTS_RAW_SCHEMA")
     raw_table_prefix: str = Field(default="raw", alias="FELTS_RAW_TABLE_PREFIX")
@@ -53,6 +64,23 @@ class Settings(BaseSettings):
     )
     coingecko_markets_per_page: int = Field(default=250, gt=0, alias="COINGECKO_MARKETS_PER_PAGE")
     coingecko_markets_max_pages: int = Field(default=1, ge=1, alias="COINGECKO_MARKETS_MAX_PAGES")
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            YamlConfigSettingsSource(settings_cls),
+            file_secret_settings,
+        )
 
     @property
     def raw_table_name(self) -> str:
