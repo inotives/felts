@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: coingecko
+    description: CoinGecko raw landing schema loaded by the Python EL slice.
+    schema: coingecko
+    tables:
+      - name: raw_coins_list
+        description: Raw CoinGecko coins list records.
+      - name: raw_asset_platforms_list
+        description: Raw CoinGecko asset platform records.
+      - name: raw_global
+        description: Raw CoinGecko global market snapshots.
+      - name: raw_global_defi
+        description: Raw CoinGecko global DeFi snapshots.
+      - name: raw_coins_markets
+        description: Raw CoinGecko market snapshot records.
