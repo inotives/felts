@@ -40,6 +40,26 @@ _Avoid_: catalog, dbt sources
 One invocation that extracts and writes selected **Entities** for a **Source**, producing a source-level outcome summary.
 _Avoid_: job, flow, task
 
+**Source Schema**:
+A database namespace owned by one **Source** for source-specific raw and transformed models.
+_Avoid_: provider schema, raw schema
+
+**Raw Entity Table**:
+A persistence table for **RawRecords** belonging to one **Source** and **Entity**.
+_Avoid_: staging table, mart table
+
+**Staging Model**:
+A transformed model that unpacks, types, filters, and deduplicates raw source data into a declared analytical shape.
+_Avoid_: raw view, mart
+
+**Mart Model**:
+A consumer-facing analytical model built from staging or intermediate models.
+_Avoid_: staging model, raw table
+
+**Declared Grain**:
+The exact uniqueness contract for rows in a transformed model.
+_Avoid_: primary key, dedup key
+
 ## Relationships
 
 - A **Source** emits one or more **Entities**.
@@ -49,6 +69,10 @@ _Avoid_: job, flow, task
 - A **Batch** groups the **RawRecords** produced by one write operation.
 - A **Schema Registry** may validate **ExtractedRecords** before they become **RawRecords**.
 - A **Source Run** processes selected **Entities** for one **Source**.
+- A **Source Schema** contains **Raw Entity Tables** and source-specific transformed models for one **Source**.
+- A **Raw Entity Table** persists **RawRecords** for one **Entity**.
+- A **Staging Model** derives from raw source data and has one **Declared Grain**.
+- A **Mart Model** derives from transformed models and has one **Declared Grain**.
 
 ## Example dialogue
 
