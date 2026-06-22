@@ -22,6 +22,8 @@ models:
       +materialized: view
       coingecko:
         +schema: coingecko
+      csv_import:
+        +schema: csv_import
     marts:
       +materialized: table
       coingecko:

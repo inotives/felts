@@ -1,0 +1,48 @@
+contracts:
+  ohlcv:
+    source: csv_import
+    entity: ohlcv
+    dbt_selector: stg_csv_import__ohlcv+
+    file:
+      encoding: utf-8-sig
+      delimiter: ";"
+    identity:
+      strategy: filename_pattern
+      pattern: ^crypto-ohlcv-(?P<asset_slug>[a-z0-9_-]+)-(?P<file_date>[0-9]{8})\.csv$
+    raw_record:
+      source_record_id_fields: [asset_slug, timestamp, row_number]
+      observed_column: timestamp
+    schema:
+      required_headers:
+        - timeOpen
+        - timeClose
+        - timeHigh
+        - timeLow
+        - name
+        - open
+        - high
+        - low
+        - close
+        - volume
+        - marketCap
+        - circulatingSupply
+        - timestamp
+      allow_extra_headers: false
+
+  fred_series:
+    source: csv_import
+    entity: fred_series
+    dbt_selector: stg_csv_import__fred_series+
+    file:
+      encoding: utf-8
+      delimiter: ","
+    identity:
+      strategy: value_column_header
+      value_header_index: 0
+    raw_record:
+      source_record_id_fields: [series_id, observation_date]
+      observed_column: observation_date
+    schema:
+      required_headers:
+        - observation_date
+      allow_extra_headers: true

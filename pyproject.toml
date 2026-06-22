@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-felts = "felts.sources.coingecko.cli:main"
+felts = "felts.cli:main"
 
 [dependency-groups]
 dev = [

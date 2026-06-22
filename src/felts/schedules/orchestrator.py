@@ -10,8 +10,10 @@ from prefect.deployments.runner import RunnerDeployment
 
 from felts.config import Settings, get_settings
 from felts.flows.transform import transform_flow
-from felts.sources.coingecko.automations import build_transform_triggers
-from felts.sources.coingecko.deployments import deploy_source_flows
+from felts.sources.coingecko.automations import build_transform_triggers as coingecko_triggers
+from felts.sources.coingecko.deployments import deploy_source_flows as deploy_coingecko_flows
+from felts.sources.csv_import.automations import build_transform_triggers as csv_triggers
+from felts.sources.csv_import.deployments import deploy_source_flows as deploy_csv_flows
 
 
 async def ensure_work_pool(settings: Settings) -> None:
@@ -41,13 +43,14 @@ async def ensure_work_pool(settings: Settings) -> None:
 
 def deploy_transform_flow(settings: Settings) -> str:
     deployment_name = "dbt-transform"
+    triggers = [*coingecko_triggers(), *csv_triggers()]
     deployment = cast(
         RunnerDeployment,
         transform_flow.to_deployment(
             name=deployment_name,
             work_pool_name=settings.prefect_work_pool,
             work_queue_name=settings.prefect_work_queue,
-            triggers=build_transform_triggers(),
+            triggers=triggers,
             job_variables={"working_dir": str(settings.resolve_project_path(Path(".")))},
             tags=["dbt", "transform"],
             description="Generic parameterized dbt transform deployment.",
@@ -61,7 +64,8 @@ def register_all(settings: Settings | None = None) -> list[str]:
     settings = settings or get_settings()
     asyncio.run(ensure_work_pool(settings))
     registered = [deploy_transform_flow(settings)]
-    registered.extend(deploy_source_flows(settings))
+    registered.extend(deploy_coingecko_flows(settings))
+    registered.extend(deploy_csv_flows(settings))
     return registered
 
 

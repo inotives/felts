@@ -38,6 +38,7 @@ Expand Felts from REST ingestion into CSV file ingestion by proving multiple loc
 - Add per-row CSV trace metadata under a reserved `_felts` payload key.
 - Store `row_number` as the physical file line number, so the first data row after a header is line 2.
 - Preserve row-level value problems as invalid raw rows with validation errors when the extractor can detect them.
+- In Phase 05, extractor-level invalid rows are limited to problems the generic CSV extractor can know without business typing: missing observed date/timestamp values, missing source record identity inputs, and metadata extraction failures. Numeric/date casting problems stay in dbt staging.
 - Emit raw completion events only when at least one valid raw row is inserted.
 - Use the existing raw completion event convention for CSV imports.
 - Reuse the existing source/entity run summary shape for CSV imports.
