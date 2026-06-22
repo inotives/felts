@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: stg_csv_import__ohlcv
+    description: Deduplicated CSV OHLCV rows.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - asset_slug
+              - observed_at
+    columns:
+      - name: asset_slug
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+
+  - name: stg_csv_import__fred_series
+    description: Long-form FRED series observations imported from CSV.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - series_id
+              - observation_date
+    columns:
+      - name: series_id
+        tests:
+          - not_null
+      - name: observation_date
+        tests:
+          - not_null

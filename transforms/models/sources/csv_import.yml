@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: csv_import
+    description: CSV import raw landing schema loaded by local file imports.
+    schema: csv_import
+    tables:
+      - name: raw_ohlcv
+        description: Raw CSV OHLCV records.
+      - name: raw_fred_series
+        description: Raw CSV FRED series records.

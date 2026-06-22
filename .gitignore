@@ -26,7 +26,14 @@ transforms/logs/
 
 # Docker and local data
 *.pid
-data/
+data/*
+!data/.gitkeep
+!data/ohlcv/
+data/ohlcv/*
+!data/ohlcv/.gitkeep
+!data/fred/
+data/fred/*
+!data/fred/.gitkeep
 
 # Editors and OS files
 .DS_Store
