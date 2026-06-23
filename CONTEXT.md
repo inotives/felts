@@ -40,6 +40,10 @@ _Avoid_: catalog, dbt sources
 One invocation that extracts and writes selected **Entities** for a **Source**, producing a source-level outcome summary.
 _Avoid_: job, flow, task
 
+**Backfill**:
+A bounded replay **Source Run** over an explicit date range that lands into normal **Raw Entity Tables**.
+_Avoid_: historical import, backfill table, replay job
+
 **Entity Run**:
 The portion of a **Source Run** that extracts and writes one **Entity** for a **Source**, producing an entity-level outcome summary.
 _Avoid_: table run, endpoint run
@@ -77,6 +81,7 @@ _Avoid_: primary key, dedup key
 - A **Batch** groups the **RawRecords** produced by one write operation.
 - A **Schema Registry** may validate **ExtractedRecords** before they become **RawRecords**.
 - A **Source Run** processes selected **Entities** for one **Source**.
+- A **Backfill** is a **Source Run** with an explicit date range.
 - An **Entity Run** processes one **Entity** within a **Source Run**.
 - A **Raw Completion Event** is emitted by a successful **Entity Run**.
 - A **Source Schema** contains **Raw Entity Tables** and source-specific transformed models for one **Source**.
