@@ -28,8 +28,6 @@ or query tools such as Grafana.
 - Keep backfill data in normal raw tables; do not add `backfill_raw` in Phase 06.
 - Treat Prefect failed states and GitHub Actions failed checks as the Phase 06 actionable alerts.
 - Ensure source flow, dbt run, and dbt test failures surface useful failure messages.
-- Decide `.env`, Prefect Blocks, or external secrets manager for each environment.
-- Add integration tests with local Postgres.
 - Keep Phase 06 CI to the fast job: Ruff lint, Ruff format check, mypy, and unit tests.
 - Defer DB-backed CI, integration-test CI, and dbt-test CI.
 - Keep DB-backed integration tests, CSV import smoke checks, and dbt run/test checks as documented local acceptance checks.
@@ -77,10 +75,6 @@ or query tools such as Grafana.
 6. Add tests for environment-file selection and backfill parameter handling.
 7. Add `docs/runbooks/local_operations.md` covering environment files, local stack start/stop, DB bootstrap, CSV/API ingestion, Prefect registration, event-triggered dbt verification, manual dbt run/test, direct SQL query checks, and common failure checks.
 8. Run fast checks plus documented local acceptance checks before opening the PR.
-- Failures produce actionable alerts.
-- Phase 06 does not add Slack, email, PagerDuty, or another external notification service.
-- Secret handling does not require code changes for rotation in deployed environments.
-- Local, dev/staging, and production settings are separated by environment-specific dotenv files.
 
 ## Out of Scope
 

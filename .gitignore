@@ -17,6 +17,8 @@ build/
 .env
 .env.*
 !.env.example
+settings/.env.*
+!settings/.env.*.example
 
 # dbt
 transforms/profiles.yml

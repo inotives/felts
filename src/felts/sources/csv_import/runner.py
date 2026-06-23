@@ -3,7 +3,8 @@
 from datetime import UTC, datetime
 
 from felts.config import Settings, get_settings
-from felts.core.extractors.csv import CsvFileExtractor
+from felts.core.exceptions import ConfigurationError
+from felts.core.extractors.csv import CsvFileExtractor, parse_date_bound
 from felts.core.loaders import RawWriter, create_loader
 from felts.core.schemas import SchemaRegistry
 from felts.core.sources import EntityRunSummary, SourceRunSummary
@@ -34,6 +35,8 @@ def run_csv_import(
     *,
     contract_id: str,
     input_uri: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
     settings: Settings | None = None,
     writer: RawWriter | None = None,
 ) -> SourceRunSummary:
@@ -46,7 +49,19 @@ def run_csv_import(
             loader=create_loader(settings),
             loader_batch_size=settings.loader_batch_size,
         )
-    result = writer.write(CsvFileExtractor(contract=contract, input_uri=input_uri).extract())
+    start = parse_date_bound(start_date, field_name="start_date")
+    end = parse_date_bound(end_date, field_name="end_date")
+    if start is not None and end is not None and start > end:
+        msg = "start_date must be before or equal to end_date"
+        raise ConfigurationError(msg)
+    result = writer.write(
+        CsvFileExtractor(
+            contract=contract,
+            input_uri=input_uri,
+            start_date=start,
+            end_date=end,
+        ).extract()
+    )
     return SourceRunSummary(
         source=CSV_IMPORT_SOURCE,
         started_at=started_at,

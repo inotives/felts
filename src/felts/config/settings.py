@@ -1,21 +1,22 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import (
     BaseSettings,
+    DotEnvSettingsSource,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
     YamlConfigSettingsSource,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+SETTINGS_DIR = REPO_ROOT / "settings"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
         extra="ignore",
         populate_by_name=True,
         yaml_file=REPO_ROOT / "config.yaml",
@@ -77,7 +78,11 @@ class Settings(BaseSettings):
         return (
             init_settings,
             env_settings,
-            dotenv_settings,
+            DotEnvSettingsSource(
+                settings_cls,
+                env_file=settings_env_file(),
+                env_file_encoding="utf-8",
+            ),
             YamlConfigSettingsSource(settings_cls),
             file_secret_settings,
         )
@@ -103,3 +108,8 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def settings_env_file(env: str | None = None) -> Path:
+    selected_env = env or os.environ.get("FELTS_ENV") or "local"
+    return SETTINGS_DIR / f".env.{selected_env}"
