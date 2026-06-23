@@ -4,7 +4,7 @@ import csv
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import UTC, datetime, time
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
@@ -37,9 +37,18 @@ class CsvContract:
 
 
 class CsvFileExtractor:
-    def __init__(self, *, contract: CsvContract, input_uri: str) -> None:
+    def __init__(
+        self,
+        *,
+        contract: CsvContract,
+        input_uri: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> None:
         self.contract = contract
         self.input_uri = input_uri
+        self.start_date = start_date
+        self.end_date = end_date
 
     def extract(self) -> Iterable[ExtractedRecord]:
         path = resolve_local_input_uri(self.input_uri)
@@ -49,7 +58,19 @@ class CsvFileExtractor:
             headers = tuple(reader.fieldnames or ())
             validate_headers(contract=self.contract, headers=headers)
             for row_number, row in enumerate(reader, start=2):
-                yield self._record(row=row, row_number=row_number, identity=identity)
+                record = self._record(row=row, row_number=row_number, identity=identity)
+                if self._in_date_range(record.observed_at):
+                    yield record
+
+    def _in_date_range(self, observed_at: datetime | None) -> bool:
+        if observed_at is None:
+            return True
+        observed_date = observed_at.astimezone(UTC).date()
+        if self.start_date is not None and observed_date < self.start_date:
+            return False
+        if self.end_date is not None and observed_date > self.end_date:
+            return False
+        return True
 
     def _extract_identity(self, path: Path) -> dict[str, str]:
         match self.contract.identity.strategy:
@@ -204,6 +225,16 @@ def source_record_id(
             value = row.get(field)
             parts.append("" if value is None else value)
     return "|".join(parts)
+
+
+def parse_date_bound(value: str | date | None, *, field_name: str) -> date | None:
+    if value is None or isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        msg = f"{field_name} must be an ISO date"
+        raise ConfigurationError(msg) from exc
 
 
 def missing_identity_fields(

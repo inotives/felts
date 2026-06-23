@@ -29,3 +29,19 @@ def test_run_csv_import_returns_summary() -> None:
     assert summary.entities[0].extracted_count == 1
     assert summary.entities[0].inserted_count == 1
     assert loader.records[0].is_valid is True
+
+
+def test_run_csv_import_accepts_backfill_date_bounds() -> None:
+    loader = MemoryLoader()
+    writer = RawWriter(schema_registry=build_csv_schema_registry(), loader=loader)
+
+    summary = run_csv_import(
+        contract_id="fred_series",
+        input_uri="tests/fixtures/csv_import/fred_series.csv",
+        start_date="2026-06-01",
+        end_date="2026-06-30",
+        writer=writer,
+    )
+
+    assert summary.entities[0].extracted_count == 0
+    assert loader.records == []

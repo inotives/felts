@@ -10,9 +10,17 @@ def test_top_level_cli_dispatches_csv_import(
 ) -> None:
     from felts.core.sources import EntityRunSummary, SourceRunSummary
 
-    def fake_run_csv_import(*, contract_id: str, input_uri: str) -> SourceRunSummary:
+    def fake_run_csv_import(
+        *,
+        contract_id: str,
+        input_uri: str,
+        start_date: str | None,
+        end_date: str | None,
+    ) -> SourceRunSummary:
         assert contract_id == "fred_series"
         assert input_uri == "data/fred/us_cpi-202605.csv"
+        assert start_date is None
+        assert end_date is None
         return SourceRunSummary(
             source="csv_import",
             started_at=datetime.now(UTC),

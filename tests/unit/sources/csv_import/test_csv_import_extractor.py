@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -31,6 +32,21 @@ def test_fred_extractor_uses_value_column_header_as_series_id() -> None:
 
     assert records[0].source_record_id == "CORESTICKM159SFRBATL|2026-05-01"
     assert records[0].payload["_felts"]["identity"]["series_id"] == "CORESTICKM159SFRBATL"
+
+
+def test_csv_extractor_filters_by_date_range() -> None:
+    contract = load_csv_contracts()["fred_series"]
+
+    records = list(
+        CsvFileExtractor(
+            contract=contract,
+            input_uri="tests/fixtures/csv_import/fred_series.csv",
+            start_date=date(2026, 6, 1),
+            end_date=date(2026, 6, 30),
+        ).extract()
+    )
+
+    assert records == []
 
 
 def test_csv_rejects_unsupported_uri_scheme() -> None:

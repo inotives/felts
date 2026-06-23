@@ -15,6 +15,7 @@ from felts.sources.csv_import.flow import csv_import_source_flow
 class CsvDeploymentSpec:
     name: str
     contract: str
+    is_backfill: bool = False
 
     @property
     def parameters(self) -> dict[str, str]:
@@ -22,13 +23,18 @@ class CsvDeploymentSpec:
 
 
 def build_source_deployment_specs() -> tuple[CsvDeploymentSpec, ...]:
-    return tuple(
-        CsvDeploymentSpec(
-            name=f"csv-import-{contract_id.replace('_', '-')}-source",
-            contract=contract_id,
+    specs: list[CsvDeploymentSpec] = []
+    for contract_id in load_csv_contracts():
+        name = contract_id.replace("_", "-")
+        specs.append(CsvDeploymentSpec(name=f"csv-import-{name}-source", contract=contract_id))
+        specs.append(
+            CsvDeploymentSpec(
+                name=f"csv-import-{name}-backfill",
+                contract=contract_id,
+                is_backfill=True,
+            )
         )
-        for contract_id in load_csv_contracts()
-    )
+    return tuple(specs)
 
 
 def deploy_source_flows(settings: Settings) -> list[str]:
@@ -42,8 +48,12 @@ def deploy_source_flows(settings: Settings) -> list[str]:
                 work_queue_name=settings.prefect_work_queue,
                 parameters=spec.parameters,
                 job_variables={"working_dir": str(settings.resolve_project_path(Path(".")))},
-                tags=["csv_import", "source", spec.contract],
-                description=f"CSV import {spec.contract} source deployment.",
+                tags=["csv_import", "source", spec.contract]
+                + (["backfill"] if spec.is_backfill else []),
+                description=(
+                    f"CSV import {spec.contract} "
+                    f"{'backfill' if spec.is_backfill else 'source'} deployment."
+                ),
             ),
         )
         deployment.apply(work_pool_name=settings.prefect_work_pool)
