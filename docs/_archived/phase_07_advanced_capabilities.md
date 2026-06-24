@@ -1,5 +1,11 @@
 # Phase 07 - Advanced and Deferred Capabilities
 
+## Outcome
+
+No listed capability currently has a concrete business or operational driver.
+Implementation is deferred, and the capabilities remain tracked under
+`Future Implementation` in `docs/project_specs.md`.
+
 ## Goal
 
 Track powerful but non-MVP capabilities so they are not accidentally designed into the early system before requirements justify them.

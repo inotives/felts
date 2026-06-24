@@ -1,106 +1,92 @@
 # Felts
 
-Felts stands for **Financial ELT Stacks**. It is a Python, dbt, Postgres, and Prefect project for extracting financial data, landing it as raw evidence, and transforming it into source-owned analytical models.
+Felts stands for **Financial ELT Stacks**. It extracts financial data from APIs
+and CSV files, preserves raw evidence in Postgres, transforms it with dbt, and
+orchestrates operational runs with Prefect.
 
-## Current Shape
+Implemented through Phase 06:
 
-- Python 3.12 project managed with `uv`
-- Dockerized Postgres with TimescaleDB and pgvector
-- dbt project under `transforms/`
-- Prefect orchestration backed by Postgres
-- Feature-based source layout under `src/felts/sources/<source>/`
-- Source-owned schemas, for example `coingecko.raw_coins_list` and `coingecko.stg_coingecko__coins_list`
-- Non-secret defaults in `config.yaml`
-- Secrets and local overrides in `.env`
+- CoinGecko REST ingestion.
+- YAML-driven OHLCV and FRED CSV imports.
+- Deterministic, idempotent raw landing in Postgres and TimescaleDB.
+- dbt staging and CoinGecko mart models.
+- Prefect schedules, Raw Completion Events, and scoped dbt transforms.
+- Bounded CSV backfills.
+- Local, dev, and production environment-file conventions.
+- Ruff, mypy, pytest, integration tests, and local operating instructions.
+
+Postgres is currently the only warehouse target. Modeled data is consumed through
+direct SQL queries; visualization is deferred.
+
+## Pipeline
+
+```text
+API or CSV
+  -> ExtractedRecord
+  -> RawWriter validation
+  -> <source>.raw_<entity>
+  -> Prefect Raw Completion Event
+  -> dbt staging and marts
+  -> SQL query
+```
+
+Examples:
+
+```text
+coingecko.raw_coins_list
+coingecko.stg_coingecko__coins_list
+coingecko.mart_coingecko__coins
+
+csv_import.raw_fred_series
+csv_import.stg_csv_import__fred_series
+```
+
+## Requirements
+
+- Python 3.12
+- `uv`
+- Docker with Compose
+
+For a one-command Linux Mint deployment after cloning:
+
+```bash
+bash scripts/deploy-linux-mint.sh
+```
+
+See [Linux production deployment](docs/linux_production_deployment.md).
 
 ## Local Setup
 
-Install Python 3.12, `uv`, and Docker, then run:
-
 ```bash
 make install
-cp .env.example .env
+cp settings/.env.local.example settings/.env.local
+make db-bootstrap
 ```
 
-Set `COINGECKO_API_KEY` in `.env` if you want authenticated CoinGecko demo API calls.
+`FELTS_ENV` defaults to `local`. Set `COINGECKO_API_KEY` in
+`settings/.env.local` for authenticated CoinGecko demo API calls.
 
-Run the full local check:
-
-```bash
-make check
-```
-
-This runs linting, formatting checks, mypy, unit tests, Dockerized Postgres checks, integration tests, dbt debug, and Prefect config checks.
-
-## Configuration
-
-Project defaults live in:
-
-```text
-config.yaml
-```
-
-Local secrets and machine-specific settings live in:
-
-```text
-.env
-```
-
-Settings precedence is:
-
-```text
-explicit args > environment variables > .env > config.yaml > code defaults
-```
-
-## Common Commands
+Run the fast checks:
 
 ```bash
 make lint
-make format
+make format-check
 make typecheck
 make test
+```
+
+Run DB-backed checks:
+
+```bash
 make test-integration
-make check
-```
-
-Database:
-
-```bash
-make db-up
-make db-check
-make db-bootstrap
-make db-shell
-make db-down
-```
-
-dbt:
-
-```bash
 make dbt-debug
-make dbt-run
-make dbt-test
 ```
 
-Prefect:
+`make check` runs the full local verification path.
 
-```bash
-make prefect-check
-make prefect-server
-make prefect-worker
-make prefect-register
-```
+## CoinGecko
 
-CoinGecko:
-
-```bash
-make coingecko-run
-make coingecko-smoke
-make coingecko-transform
-```
-
-## CoinGecko Source
-
-CoinGecko is the first completed source vertical slice. It supports:
+Supported entities:
 
 - `coins_list`
 - `asset_platforms_list`
@@ -108,85 +94,149 @@ CoinGecko is the first completed source vertical slice. It supports:
 - `global_defi`
 - `coins_markets`
 
-Raw data lands into one table per entity under the provider schema:
+Run all entities:
 
-```text
-coingecko.raw_coins_list
-coingecko.raw_asset_platforms_list
-coingecko.raw_global
-coingecko.raw_global_defi
-coingecko.raw_coins_markets
+```bash
+uv run felts coingecko run
 ```
 
-dbt models for the same provider stay in the same schema with layer prefixes:
+Run selected entities:
 
-```text
-coingecko.stg_coingecko__coins_list
-coingecko.int_...
-coingecko.mart_...
+```bash
+uv run felts coingecko run --entities coins_list global
 ```
 
-## Prefect Orchestration
+Load and transform CoinGecko data:
 
-Phase 04 added Prefect orchestration:
+```bash
+make coingecko-transform
+```
 
-- entity-scoped source deployments
-- raw completion events
-- downstream dbt transform deployment
-- manual master flow
-- unscheduled deployment support for manual sources
+## CSV Import
 
-Start the local Prefect server:
+CSV behavior is defined in
+`src/felts/sources/csv_import/contracts.yaml`.
+
+Implemented contracts:
+
+- `ohlcv`: semicolon-delimited crypto OHLCV files.
+- `fred_series`: FRED observation files.
+
+Runtime CSV files belong under `data/` and are not committed.
+
+```bash
+uv run felts csv import \
+  --contract ohlcv \
+  --input-uri data/ohlcv/crypto-ohlcv-bitcoin-20260621.csv
+
+uv run felts csv import \
+  --contract fred_series \
+  --input-uri data/fred/us_cpi-202605.csv
+```
+
+Run an inclusive bounded backfill:
+
+```bash
+uv run felts csv import \
+  --contract fred_series \
+  --input-uri data/fred/us_cpi-202605.csv \
+  --start-date 2026-05-01 \
+  --end-date 2026-05-31
+```
+
+## dbt
+
+```bash
+make dbt-run
+make dbt-test
+```
+
+Implemented transforms include:
+
+- CoinGecko staging models for all five entities.
+- CoinGecko coins and asset-platform marts.
+- OHLCV and FRED CSV staging models.
+
+## Prefect
+
+Start the server and worker in separate terminals:
 
 ```bash
 make prefect-server
 ```
 
-Open the UI:
-
-```text
-http://127.0.0.1:4200
-```
-
-In another terminal, start a worker:
-
 ```bash
 make prefect-worker
 ```
 
-Register deployments and automations:
+Register the work pool, deployments, and automations:
 
 ```bash
 make prefect-register
 ```
 
-## CSV Import Direction
-
-Phase 05 is being designed around CSV import only. The first planned CSV contracts are:
-
-- OHLCV data from `data/ohlcv/`
-- FRED series data from `data/fred/`
-
-Local CSV files under `data/` are runtime inputs and are gitignored. Tests should use small committed fixtures under:
+The Prefect UI is available at:
 
 ```text
-tests/fixtures/csv_import/
+http://127.0.0.1:4200
 ```
 
-CSV dataset contracts will be YAML-driven under:
+Re-run `make prefect-register` after changing source deployments, dbt selectors,
+or event automations.
+
+## Configuration
+
+Non-secret defaults live in `config.yaml`. Environment-specific secrets and
+overrides live under `settings/`:
 
 ```text
-src/felts/sources/csv_import/contracts.yaml
+settings/.env.local
+settings/.env.dev
+settings/.env.prod
 ```
 
-The extractor should remain generic. Dataset-specific parameters such as delimiter, encoding, required headers, identity strategy, source record identity fields, and dbt selector belong in YAML.
+Create them from the committed `.example` templates. Real environment files are
+not committed.
+
+Settings precedence:
+
+```text
+explicit values
+  > process environment
+  > settings/.env.<FELTS_ENV>
+  > config.yaml
+  > file secrets
+```
+
+## Common Commands
+
+```bash
+make db-up
+make db-bootstrap
+make db-shell
+make db-down
+
+make lint
+make format-check
+make typecheck
+make test
+make test-integration
+
+make dbt-debug
+make dbt-run
+make dbt-test
+
+make prefect-check
+make prefect-server
+make prefect-worker
+make prefect-register
+```
 
 ## Documentation
 
-Key docs:
-
-- [Project spec](docs/project_specs.md)
+- [Project specification](docs/project_specs.md)
 - [Implementation phases](docs/implementation_phases.md)
-- [Raw landing ADR](docs/adr/0001-raw-landing-design.md)
-- [Provider schema transform layout ADR](docs/adr/0002-provider-schema-transform-layout.md)
-- [YAML-driven CSV contracts ADR](docs/adr/0003-yaml-driven-csv-import-contracts.md)
+- [Local operations runbook](docs/runbooks/local_operations.md)
+- [Linux production deployment](docs/linux_production_deployment.md)
+- [Domain glossary](CONTEXT.md)
+- [Architecture decisions](docs/adr/)
