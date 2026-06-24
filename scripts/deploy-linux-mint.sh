@@ -20,7 +20,17 @@ if [[ -z "$HOST_IP" ]]; then
 fi
 
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl git docker.io docker-compose-v2 openssl
+sudo apt-get install -y ca-certificates curl git openssl
+
+if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
+  if apt-cache show docker-ce >/dev/null 2>&1; then
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin \
+      docker-compose-plugin
+  else
+    sudo apt-get install -y docker.io docker-compose-v2
+  fi
+fi
+
 sudo systemctl enable --now docker
 sudo usermod -aG docker "$DEPLOY_USER"
 
