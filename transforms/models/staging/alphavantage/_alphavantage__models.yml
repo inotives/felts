@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  # scaffold: dbt-staging-models:start
+  - name: stg_alphavantage__time_series_daily
+    description: Alpha Vantage daily prices at one row per symbol and trading date.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - symbol
+              - trading_date
+    columns:
+      - name: symbol
+        tests:
+          - not_null
+      - name: trading_date
+        tests:
+          - not_null
+      - name: raw_record_id
+        tests:
+          - not_null
+# scaffold: dbt-staging-models:end

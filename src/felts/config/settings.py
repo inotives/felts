@@ -65,6 +65,7 @@ class Settings(BaseSettings):
     )
     coingecko_markets_per_page: int = Field(default=250, gt=0, alias="COINGECKO_MARKETS_PER_PAGE")
     coingecko_markets_max_pages: int = Field(default=1, ge=1, alias="COINGECKO_MARKETS_MAX_PAGES")
+    alphavantage_api_key: str | None = Field(default=None, alias="ALPHAVANTAGE_API_KEY")
 
     @classmethod
     def settings_customise_sources(
