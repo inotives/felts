@@ -1,10 +1,16 @@
 """Top-level Felts CLI router."""
 
+# ruff: noqa: I001
+
 import argparse
 from collections.abc import Sequence
 
 from felts.sources.coingecko.cli import register_cli as register_coingecko_cli
 from felts.sources.csv_import.cli import register_cli as register_csv_cli
+
+# scaffold: source-cli-imports:start
+from felts.sources.alphavantage.cli import register_cli as register_alphavantage_cli
+# scaffold: source-cli-imports:end
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -22,6 +28,9 @@ def _build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command")
     register_coingecko_cli(subparsers)
     register_csv_cli(subparsers)
+    # scaffold: source-cli-registrations:start
+    register_alphavantage_cli(subparsers)
+    # scaffold: source-cli-registrations:end
     return parser
 
 

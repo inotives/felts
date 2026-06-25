@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: alphavantage
+    description: Alpha Vantage raw landing schema.
+    schema: alphavantage
+    tables:
+      # scaffold: dbt-source-tables:start
+      - name: raw_time_series_daily
+        description: Raw Alpha Vantage daily market records.
+# scaffold: dbt-source-tables:end

@@ -1,5 +1,7 @@
 """Prefect deployment registration entrypoint."""
 
+# ruff: noqa: I001
+
 import asyncio
 from pathlib import Path
 from typing import cast
@@ -14,6 +16,11 @@ from felts.sources.coingecko.automations import build_transform_triggers as coin
 from felts.sources.coingecko.deployments import deploy_source_flows as deploy_coingecko_flows
 from felts.sources.csv_import.automations import build_transform_triggers as csv_triggers
 from felts.sources.csv_import.deployments import deploy_source_flows as deploy_csv_flows
+
+# scaffold: source-orchestrator-imports:start
+from felts.sources.alphavantage.automations import build_transform_triggers as alphavantage_triggers
+from felts.sources.alphavantage.deployments import deploy_source_flows as deploy_alphavantage_flows
+# scaffold: source-orchestrator-imports:end
 
 
 async def ensure_work_pool(settings: Settings) -> None:
@@ -44,6 +51,9 @@ async def ensure_work_pool(settings: Settings) -> None:
 def deploy_transform_flow(settings: Settings) -> str:
     deployment_name = "dbt-transform"
     triggers = [*coingecko_triggers(), *csv_triggers()]
+    # scaffold: source-transform-triggers:start
+    triggers.extend(alphavantage_triggers())
+    # scaffold: source-transform-triggers:end
     deployment = cast(
         RunnerDeployment,
         transform_flow.to_deployment(
@@ -66,6 +76,9 @@ def register_all(settings: Settings | None = None) -> list[str]:
     registered = [deploy_transform_flow(settings)]
     registered.extend(deploy_coingecko_flows(settings))
     registered.extend(deploy_csv_flows(settings))
+    # scaffold: source-deployments:start
+    registered.extend(deploy_alphavantage_flows(settings))
+    # scaffold: source-deployments:end
     return registered
 
 
