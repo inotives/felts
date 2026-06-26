@@ -14,6 +14,8 @@ ENV_FILE="$ROOT/settings/.env.prod"
 PROFILE_FILE="$ROOT/transforms/profiles.yml"
 HOST_IP="${FELTS_HOST:-$(hostname -I | awk '{print $1}')}"
 ROTATE_AI_PASSWORD=false
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$(basename "$ROOT")}"
+POSTGRES_VOLUME="${COMPOSE_PROJECT_NAME}_felts-postgres-data"
 
 for arg in "$@"; do
   case "$arg" in
@@ -31,6 +33,25 @@ if [[ -z "$HOST_IP" ]]; then
   echo "Unable to detect the host IP. Run with FELTS_HOST=192.168.1.50." >&2
   exit 1
 fi
+
+wait_for_postgres_bootstrap() {
+  for _ in {1..60}; do
+    if sudo docker compose exec -T postgres psql -U postgres -d postgres -Atqc \
+      "SELECT
+         EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'felts')::int ||
+         EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'prefect')::int ||
+         EXISTS (SELECT 1 FROM pg_database WHERE datname = 'felts')::int ||
+         EXISTS (SELECT 1 FROM pg_database WHERE datname = 'prefect')::int" \
+      | grep -qx '1111'; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  echo "Postgres started, but required Felts roles/databases are missing." >&2
+  echo "Refusing to continue because this may indicate an empty or wrong production volume." >&2
+  return 1
+}
 
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl git openssl
@@ -92,6 +113,11 @@ COINGECKO_API_KEY=${COINGECKO_API_KEY:-}
 EOF
   chmod 600 "$ENV_FILE"
 else
+  if ! sudo docker volume inspect "$POSTGRES_VOLUME" >/dev/null 2>&1; then
+    echo "$ENV_FILE exists, but Docker volume $POSTGRES_VOLUME is missing." >&2
+    echo "Refusing to start Postgres because that would create an empty production volume." >&2
+    exit 1
+  fi
   FELTS_DB_PASSWORD="$(sed -n 's/^FELTS_DB_PASSWORD=//p' "$ENV_FILE")"
   FELTS_AI_PASSWORD="$(sed -n 's/^FELTS_AI_PASSWORD=//p' "$ENV_FILE")"
   POSTGRES_ADMIN_PASSWORD="$(sed -n 's/^POSTGRES_ADMIN_PASSWORD=//p' "$ENV_FILE")"
@@ -123,6 +149,7 @@ sudo docker compose up -d --build postgres
 until sudo docker compose exec -T postgres pg_isready -U postgres -d postgres >/dev/null; do
   sleep 2
 done
+wait_for_postgres_bootstrap
 sudo docker compose exec -T postgres psql -U postgres -d postgres \
   -v felts_password="$FELTS_DB_PASSWORD" \
   -v prefect_password="$PREFECT_DB_PASSWORD" \

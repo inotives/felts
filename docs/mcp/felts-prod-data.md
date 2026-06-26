@@ -56,6 +56,10 @@ opencode mcp list
 
 ## Production access operations
 
+Production deploy scripts must not drop, truncate, delete, or update production data.
+If `settings/.env.prod` already exists, deployment must refuse to continue when the
+expected Docker volume, roles, or databases are missing.
+
 Normal deploy provisions or updates the `felts_ai` role without rotating its password:
 
 ```bash
