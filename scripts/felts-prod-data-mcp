@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="$ROOT/settings/.env.mcp.local"
+TUNNEL_PID=""
+
+if [[ ! -f "$ENV_FILE" ]]; then
+  echo "Missing $ENV_FILE. Copy settings/.env.mcp.example and fill FELTS_MCP_DB_PASSWORD." >&2
+  exit 1
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +a
+
+cleanup() {
+  if [[ -n "$TUNNEL_PID" ]] && kill -0 "$TUNNEL_PID" >/dev/null 2>&1; then
+    kill "$TUNNEL_PID" >/dev/null 2>&1 || true
+    wait "$TUNNEL_PID" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT INT TERM
+
+python3 - "$FELTS_MCP_LOCAL_PORT" <<'PY'
+import socket
+import sys
+
+port = int(sys.argv[1])
+sock = socket.socket()
+try:
+    sock.bind(("127.0.0.1", port))
+except OSError:
+    print(f"127.0.0.1:{port} is already in use; refusing to reuse or kill it.", file=sys.stderr)
+    sys.exit(1)
+finally:
+    sock.close()
+PY
+
+ssh \
+  -N \
+  -L "127.0.0.1:${FELTS_MCP_LOCAL_PORT}:${FELTS_MCP_REMOTE_HOST}:${FELTS_MCP_REMOTE_PORT}" \
+  -o BatchMode=yes \
+  -o ExitOnForwardFailure=yes \
+  -o StrictHostKeyChecking=yes \
+  -p "$FELTS_MCP_SSH_PORT" \
+  "${FELTS_MCP_SSH_USER}@${FELTS_MCP_SSH_HOST}" &
+TUNNEL_PID="$!"
+
+cd "$ROOT"
+uv run --group mcp --env-file "$ENV_FILE" python -m felts.prod_data_mcp --prune-audit-log
+for _ in {1..10}; do
+  if uv run --group mcp --env-file "$ENV_FILE" python -m felts.prod_data_mcp --check-db; then
+    uv run --group mcp --env-file "$ENV_FILE" python -m felts.prod_data_mcp
+    exit $?
+  fi
+  sleep 1
+done
+
+echo "PostgreSQL was not reachable through the SSH tunnel within 10 seconds." >&2
+exit 1

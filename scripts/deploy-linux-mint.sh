@@ -13,6 +13,19 @@ DEPLOY_HOME="$(getent passwd "$DEPLOY_USER" | cut -d: -f6)"
 ENV_FILE="$ROOT/settings/.env.prod"
 PROFILE_FILE="$ROOT/transforms/profiles.yml"
 HOST_IP="${FELTS_HOST:-$(hostname -I | awk '{print $1}')}"
+ROTATE_AI_PASSWORD=false
+
+for arg in "$@"; do
+  case "$arg" in
+    --rotate-ai-password)
+      ROTATE_AI_PASSWORD=true
+      ;;
+    *)
+      echo "Unknown argument: $arg" >&2
+      exit 1
+      ;;
+  esac
+done
 
 if [[ -z "$HOST_IP" ]]; then
   echo "Unable to detect the host IP. Run with FELTS_HOST=192.168.1.50." >&2
@@ -53,6 +66,7 @@ cd "$ROOT"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   FELTS_DB_PASSWORD="$(openssl rand -hex 24)"
+  FELTS_AI_PASSWORD="$(openssl rand -hex 24)"
   PREFECT_DB_PASSWORD="$(openssl rand -hex 24)"
   POSTGRES_ADMIN_PASSWORD="$(openssl rand -hex 24)"
   cat > "$ENV_FILE" <<EOF
@@ -63,6 +77,7 @@ FELTS_DB_NAME=felts
 FELTS_DB_USER=felts
 FELTS_DB_PASSWORD=$FELTS_DB_PASSWORD
 FELTS_DATABASE_URL=postgresql+psycopg://felts:$FELTS_DB_PASSWORD@127.0.0.1:5432/felts
+FELTS_AI_PASSWORD=$FELTS_AI_PASSWORD
 POSTGRES_ADMIN_PASSWORD=$POSTGRES_ADMIN_PASSWORD
 
 PREFECT_API_URL=http://$HOST_IP:4200/api
@@ -78,6 +93,7 @@ EOF
   chmod 600 "$ENV_FILE"
 else
   FELTS_DB_PASSWORD="$(sed -n 's/^FELTS_DB_PASSWORD=//p' "$ENV_FILE")"
+  FELTS_AI_PASSWORD="$(sed -n 's/^FELTS_AI_PASSWORD=//p' "$ENV_FILE")"
   POSTGRES_ADMIN_PASSWORD="$(sed -n 's/^POSTGRES_ADMIN_PASSWORD=//p' "$ENV_FILE")"
   PREFECT_DATABASE_URL="$(sed -n 's/^PREFECT_API_DATABASE_CONNECTION_URL=//p' "$ENV_FILE")"
   PREFECT_DB_PASSWORD="${PREFECT_DATABASE_URL#*://prefect:}"
@@ -85,6 +101,14 @@ else
   if [[ -z "$POSTGRES_ADMIN_PASSWORD" ]]; then
     POSTGRES_ADMIN_PASSWORD="$(openssl rand -hex 24)"
     printf '\nPOSTGRES_ADMIN_PASSWORD=%s\n' "$POSTGRES_ADMIN_PASSWORD" >> "$ENV_FILE"
+  fi
+  if [[ -z "$FELTS_AI_PASSWORD" || "$ROTATE_AI_PASSWORD" == true ]]; then
+    FELTS_AI_PASSWORD="$(openssl rand -hex 24)"
+    if grep -q '^FELTS_AI_PASSWORD=' "$ENV_FILE"; then
+      sed -i "s/^FELTS_AI_PASSWORD=.*/FELTS_AI_PASSWORD=$FELTS_AI_PASSWORD/" "$ENV_FILE"
+    else
+      printf '\nFELTS_AI_PASSWORD=%s\n' "$FELTS_AI_PASSWORD" >> "$ENV_FILE"
+    fi
   fi
   if [[ -z "$FELTS_DB_PASSWORD" || -z "$PREFECT_DB_PASSWORD" ]]; then
     echo "$ENV_FILE exists but does not contain production database passwords." >&2
@@ -109,6 +133,51 @@ ALTER ROLE postgres PASSWORD :'postgres_password';
 SQL
 sudo docker compose exec -T postgres psql -U postgres -d felts \
   < docker/postgres/init/10-create-raw-records.sql
+sudo docker compose exec -T postgres psql -U postgres -d felts \
+  -v ai_password="$FELTS_AI_PASSWORD" <<'SQL'
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'felts_ai') THEN
+    CREATE ROLE felts_ai LOGIN;
+  END IF;
+END
+$$;
+
+ALTER ROLE felts_ai LOGIN PASSWORD :'ai_password';
+ALTER ROLE felts_ai SET default_transaction_read_only = on;
+ALTER ROLE felts_ai SET statement_timeout = '15s';
+ALTER ROLE felts_ai SET idle_in_transaction_session_timeout = '30s';
+
+REVOKE ALL ON DATABASE felts FROM felts_ai;
+GRANT CONNECT ON DATABASE felts TO felts_ai;
+REVOKE ALL ON SCHEMA public FROM felts_ai;
+GRANT USAGE ON SCHEMA public TO felts_ai;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM felts_ai;
+
+DO $$
+DECLARE
+  view_name text;
+BEGIN
+  FOREACH view_name IN ARRAY ARRAY[
+    'mart_coingecko__asset_platforms',
+    'mart_coingecko__coins',
+    'stg_alphavantage__time_series_daily',
+    'stg_coingecko__asset_platforms_list',
+    'stg_coingecko__coins_list',
+    'stg_coingecko__coins_markets',
+    'stg_coingecko__global',
+    'stg_coingecko__global_defi',
+    'stg_csv_import__fred_series',
+    'stg_csv_import__ohlcv'
+  ]
+  LOOP
+    IF to_regclass('public.' || view_name) IS NOT NULL THEN
+      EXECUTE format('GRANT SELECT ON TABLE public.%I TO felts_ai', view_name);
+    END IF;
+  END LOOP;
+END
+$$;
+SQL
 
 sudo tee /etc/systemd/system/felts-prefect-server.service >/dev/null <<EOF
 [Unit]

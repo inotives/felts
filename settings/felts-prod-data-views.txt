@@ -1,0 +1,10 @@
+mart_coingecko__asset_platforms
+mart_coingecko__coins
+stg_alphavantage__time_series_daily
+stg_coingecko__asset_platforms_list
+stg_coingecko__coins_list
+stg_coingecko__coins_markets
+stg_coingecko__global
+stg_coingecko__global_defi
+stg_csv_import__fred_series
+stg_csv_import__ohlcv
