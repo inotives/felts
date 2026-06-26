@@ -36,6 +36,7 @@ data/ohlcv/*
 !data/fred/
 data/fred/*
 !data/fred/.gitkeep
+var/
 
 # Editors and OS files
 .DS_Store
