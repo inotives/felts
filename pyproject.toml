@@ -25,6 +25,7 @@ dev = [
     "pytest>=8.3.0",
     "pytest-httpx>=0.36.2",
     "ruff>=0.8.0",
+    "types-PyYAML>=6.0.0",
 ]
 orchestration = [
     "fastapi<0.137",
@@ -38,6 +39,11 @@ dbt = [
 postgres = [
     "asyncpg>=0.30.0",
     "psycopg[binary]>=3.2.0",
+]
+mcp = [
+    "mcp[cli]>=1.27,<2",
+    "psycopg[binary]>=3.2.0",
+    "sqlglot>=26.0.0",
 ]
 finance = [
     "ccxt>=4.4.0",

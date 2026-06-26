@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any, cast
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 from felts.core.exceptions import ConfigurationError
 from felts.core.extractors.csv import CsvContract, CsvIdentity
