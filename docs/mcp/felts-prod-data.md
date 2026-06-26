@@ -56,20 +56,26 @@ opencode mcp list
 
 ## Production access operations
 
-Production deploy scripts must not drop, truncate, delete, or update production data.
-If `settings/.env.prod` already exists, deployment must refuse to continue when the
-expected Docker volume, roles, or databases are missing.
+Production scripts must not drop, truncate, delete, or update production data. If
+`settings/.env.prod` already exists, deployment must refuse to continue when the expected
+Docker volume, roles, or databases are missing.
 
-Normal deploy provisions or updates the `felts_ai` role without rotating its password:
+Host bootstrap is rare and should not be used for routine MCP access updates:
 
 ```bash
 scripts/deploy-linux-mint.sh
 ```
 
+Safe MCP data-access reconciliation is rerunnable after dbt creates new allowlisted views:
+
+```bash
+scripts/update-prod-data-access.sh
+```
+
 Rotate the `felts_ai` password explicitly:
 
 ```bash
-scripts/deploy-linux-mint.sh --rotate-ai-password
+scripts/update-prod-data-access.sh --rotate-ai-password
 ```
 
 Disable or re-enable agent database login:
