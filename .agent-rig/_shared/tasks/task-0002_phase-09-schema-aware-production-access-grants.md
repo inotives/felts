@@ -2,7 +2,7 @@
 id: task-0002
 title: "Phase 09: schema-aware production access grants"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-13
@@ -11,7 +11,11 @@ priority: normal
 parent: ""
 depends_on:
   - task-0001
+message: Reviewed schema-aware production access grants. Focused tests, ruff,
+  and bash syntax check passed; accepted.
 ---
+
+
 
 # Task
 
@@ -73,3 +77,15 @@ entry is not `schema.view`.
 - [ ] Focused tests in `tests/unit/test_deploy_script_guards.py` pass.
 
 ## Notes
+
+- 2026-07-13 worker: updated `scripts/update-prod-data-access.sh` to read
+  `settings/felts-prod-data-views.txt`, validate schema-qualified entries before
+  grants, grant schema usage from distinct allowlist schemas, and grant relation
+  `SELECT` with quoted schema/relation identifiers while preserving
+  `--rotate-ai-password`.
+- Verification:
+  `python3 -m uv run --group dev pytest tests/unit/test_deploy_script_guards.py -q`
+  (`7 passed in 0.01s`);
+  `bash -n scripts/update-prod-data-access.sh`;
+  `python3 -m uv run --group dev ruff check tests/unit/test_deploy_script_guards.py`
+  (`All checks passed!`).

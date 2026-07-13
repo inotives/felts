@@ -11,6 +11,7 @@ from felts.prod_data_mcp import (
     PolicyError,
     _json_value,
     _query_result_from_rows,
+    describe_allowed_view,
     load_allowed_views,
     load_dbt_descriptions,
     prune_audit_log,
@@ -21,29 +22,29 @@ from felts.prod_data_mcp import (
 
 def test_load_allowed_views_reads_committed_allowlist() -> None:
     assert load_allowed_views() == (
-        "mart_coingecko__asset_platforms",
-        "mart_coingecko__coins",
-        "stg_alphavantage__time_series_daily",
-        "stg_coingecko__asset_platforms_list",
-        "stg_coingecko__coins_list",
-        "stg_coingecko__coins_markets",
-        "stg_coingecko__global",
-        "stg_coingecko__global_defi",
-        "stg_csv_import__fred_series",
-        "stg_csv_import__ohlcv",
+        "coingecko.mart_coingecko__asset_platforms",
+        "coingecko.mart_coingecko__coins",
+        "public.stg_alphavantage__time_series_daily",
+        "coingecko.stg_coingecko__asset_platforms_list",
+        "coingecko.stg_coingecko__coins_list",
+        "coingecko.stg_coingecko__coins_markets",
+        "coingecko.stg_coingecko__global",
+        "coingecko.stg_coingecko__global_defi",
+        "csv_import.stg_csv_import__fred_series",
+        "csv_import.stg_csv_import__ohlcv",
     )
 
 
 def test_validate_query_allows_bounded_select_from_allowlisted_view() -> None:
-    sql = "select coin_id from public.mart_coingecko__coins limit 10"
+    sql = "select coin_id from coingecko.mart_coingecko__coins limit 10"
 
-    assert validate_query(sql) == "SELECT coin_id FROM public.mart_coingecko__coins LIMIT 10"
+    assert validate_query(sql) == "SELECT coin_id FROM coingecko.mart_coingecko__coins LIMIT 10"
 
 
 def test_validate_query_allows_unbounded_aggregate() -> None:
-    sql = "select count(*) from stg_alphavantage__time_series_daily"
+    sql = "select count(*) from public.stg_alphavantage__time_series_daily"
 
-    assert validate_query(sql) == "SELECT COUNT(*) FROM stg_alphavantage__time_series_daily"
+    assert validate_query(sql) == "SELECT COUNT(*) FROM public.stg_alphavantage__time_series_daily"
 
 
 @pytest.mark.parametrize(
@@ -51,15 +52,72 @@ def test_validate_query_allows_unbounded_aggregate() -> None:
     [
         "select * from raw.raw_coins limit 10",
         "delete from mart_coingecko__coins",
+        "select * from mart_coingecko__coins limit 10",
         "select coin_id from mart_coingecko__coins",
-        "select now() from mart_coingecko__coins limit 1",
-        "select coin_id from mart_coingecko__coins; select 1",
-        "select coin_id from mart_coingecko__coins -- no",
+        "select now() from coingecko.mart_coingecko__coins limit 1",
+        "select coin_id from coingecko.mart_coingecko__coins; select 1",
+        "select coin_id from coingecko.mart_coingecko__coins -- no",
     ],
 )
 def test_validate_query_rejects_unsafe_sql(sql: str) -> None:
     with pytest.raises(PolicyError):
         validate_query(sql)
+
+
+def test_describe_allowed_view_uses_schema_qualified_lookup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, tuple[str, str]]] = []
+
+    class Cursor:
+        def __enter__(self) -> "Cursor":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def execute(self, sql: str, params: tuple[str, str]) -> None:
+            calls.append((sql, params))
+
+        def fetchall(self) -> list[dict[str, str]]:
+            return [
+                {
+                    "column_name": "coin_id",
+                    "data_type": "text",
+                    "is_nullable": "NO",
+                }
+            ]
+
+    class Connection:
+        def __enter__(self) -> "Connection":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def cursor(self) -> Cursor:
+            return Cursor()
+
+    monkeypatch.setattr(
+        "felts.prod_data_mcp.psycopg.connect",
+        lambda *args, **kwargs: Connection(),
+    )
+
+    description = describe_allowed_view("coingecko.mart_coingecko__coins", "dbname=x")
+
+    assert calls == [
+        (
+            """
+                SELECT column_name, data_type, is_nullable
+                FROM information_schema.columns
+                WHERE table_schema = %s AND table_name = %s
+                ORDER BY ordinal_position
+                """,
+            ("coingecko", "mart_coingecko__coins"),
+        )
+    ]
+    assert description["name"] == "coingecko.mart_coingecko__coins"
+    assert description["columns"][0]["name"] == "coin_id"
 
 
 def test_json_value_preserves_json_scalars_and_stringifies_decimal() -> None:

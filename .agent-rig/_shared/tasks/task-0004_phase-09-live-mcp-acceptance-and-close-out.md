@@ -2,7 +2,7 @@
 id: task-0004
 title: "Phase 09: live MCP acceptance and close-out"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-13
@@ -11,7 +11,12 @@ priority: normal
 parent: ""
 depends_on:
   - task-0003
+message: Reviewed live MCP acceptance close-out. Local verification gates pass,
+  task notes document the live production evidence and skipped local prod-env
+  step; accepted.
 ---
+
+
 
 # Task
 
@@ -75,3 +80,37 @@ re-registration is not required for this close-out unless the human asks for it.
   reviewer handoff.
 
 ## Notes
+
+- 2026-07-13 worker: local `scripts/update-prod-data-access.sh` could not run
+  because local `settings/.env.prod` is absent. Production checkout
+  `/home/inotives/workspaces/felts` has `settings/.env.prod`, so the updated
+  non-secret access script and committed allowlist were copied there and
+  `scripts/update-prod-data-access.sh` ran successfully.
+- Live reconciliation surfaced two script bugs that are fixed in this patch:
+  the main `psql` block now uses `ON_ERROR_STOP`, and schema grants skip
+  allowlisted schemas that do not exist yet, matching existing-relation grant
+  behavior.
+- Live MCP evidence through a fresh SSH tunnel:
+  `--check-db` returned `check_db=ok`;
+  `list_views_count=10` and returned the committed schema-qualified allowlist;
+  `describe_view=public.stg_alphavantage__time_series_daily` returned
+  `columns=14 first_column=symbol`;
+  `describe_view=coingecko.mart_coingecko__coins` returned
+  `columns=6 first_column=coin_id`;
+  aggregate query
+  `select count(*) as count from coingecko.mart_coingecko__coins` returned
+  `columns=1 rows=1 row_count=1 truncated=False`;
+  bare reference validation returned `bare_reference_rejected=ok`.
+- No production secrets were printed, committed, or copied into tracked files.
+  The production checkout now has non-secret working-tree updates for
+  `scripts/update-prod-data-access.sh` and
+  `settings/felts-prod-data-views.txt`, matching this local patch.
+- Final local verification after live fixes:
+  `python3 -m uv run --group mcp pytest tests/unit/test_prod_data_mcp.py tests/unit/test_deploy_script_guards.py`
+  (`23 passed in 0.14s`);
+  `python3 -m uv run --group mcp ruff check src tests`
+  (`All checks passed!`);
+  `python3 -m uv run --group mcp mypy src/felts tests`
+  (`Success: no issues found in 83 source files`);
+  `bash -n scripts/deploy-linux-mint.sh scripts/update-prod-data-access.sh scripts/manage-prod-data-access.sh scripts/felts-prod-data-mcp`;
+  `git diff --check`.
