@@ -2,7 +2,7 @@
 id: task-0001
 title: "Phase 09: schema-qualified MCP allowlist"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-13
@@ -10,7 +10,11 @@ updated_on: 2026-07-13
 priority: normal
 parent: ""
 depends_on: []
+message: Reviewed schema-qualified MCP allowlist changes. Focused tests and ruff
+  passed; accepted.
 ---
+
+
 
 # Task
 
@@ -78,3 +82,13 @@ object model.
 - [ ] Focused tests in `tests/unit/test_prod_data_mcp.py` pass.
 
 ## Notes
+
+- 2026-07-13 worker: implemented schema-qualified allowlist matching in
+  `src/felts/prod_data_mcp.py`, updated committed allowlist entries, and added
+  focused tests for qualified validation and `describe_allowed_view` metadata
+  lookup.
+- Verification:
+  `python3 -m uv run --group dev --group mcp pytest tests/unit/test_prod_data_mcp.py -q`
+  (`16 passed in 0.18s`);
+  `python3 -m uv run --group dev --group mcp ruff check src/felts/prod_data_mcp.py tests/unit/test_prod_data_mcp.py`
+  (`All checks passed!`).

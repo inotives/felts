@@ -125,6 +125,12 @@ def load_dbt_descriptions(models_dir: Path = DBT_MODELS_DIR) -> dict[str, dict[s
     return descriptions
 
 
+def _qualified_table_name(table: exp.Table) -> str:
+    if not table.db:
+        return table.name
+    return f"{table.db}.{table.name}"
+
+
 def validate_query(sql: str, allowed_views: tuple[str, ...] | None = None) -> str:
     allowed = set(allowed_views or load_allowed_views())
     if "--" in sql or "/*" in sql or "*/" in sql:
@@ -149,10 +155,9 @@ def validate_query(sql: str, allowed_views: tuple[str, ...] | None = None) -> st
     for table in tree.find_all(exp.Table):
         if table.name in cte_names:
             continue
-        if table.db not in ("", "public"):
-            raise PolicyError(f"schema is not allowlisted: {table.db}")
-        if table.name not in allowed:
-            raise PolicyError(f"view is not allowlisted: {table.name}")
+        table_name = _qualified_table_name(table)
+        if table_name not in allowed:
+            raise PolicyError(f"view is not allowlisted: {table_name}")
 
     for func in tree.find_all(exp.Func):
         if func.sql_name().upper() not in SAFE_FUNCTIONS:
@@ -175,6 +180,7 @@ def describe_allowed_view(view_name: str, conninfo: str) -> dict[str, Any]:
     allowed = set(load_allowed_views())
     if view_name not in allowed:
         raise PolicyError(f"view is not allowlisted: {view_name}")
+    schema, table = view_name.split(".", 1)
 
     with psycopg.connect(conninfo, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
@@ -182,14 +188,14 @@ def describe_allowed_view(view_name: str, conninfo: str) -> dict[str, Any]:
                 """
                 SELECT column_name, data_type, is_nullable
                 FROM information_schema.columns
-                WHERE table_schema = 'public' AND table_name = %s
+                WHERE table_schema = %s AND table_name = %s
                 ORDER BY ordinal_position
                 """,
-                (view_name,),
+                (schema, table),
             )
             columns = cur.fetchall()
 
-    docs = load_dbt_descriptions().get(view_name, {})
+    docs = load_dbt_descriptions().get(table, {})
     column_docs = docs.get("columns", {})
     return {
         "name": view_name,

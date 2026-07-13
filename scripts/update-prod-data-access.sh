@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$ROOT/settings/.env.prod"
+ALLOWLIST_FILE="$ROOT/settings/felts-prod-data-views.txt"
 ROTATE_AI_PASSWORD=false
 
 for arg in "$@"; do
@@ -24,6 +25,26 @@ fi
 
 cd "$ROOT"
 
+if [[ ! -f "$ALLOWLIST_FILE" ]]; then
+  echo "Missing $ALLOWLIST_FILE." >&2
+  exit 1
+fi
+
+ALLOWED_VIEWS=""
+while IFS= read -r view_name || [[ -n "$view_name" ]]; do
+  [[ -z "$view_name" || "$view_name" == \#* ]] && continue
+  if [[ ! "$view_name" =~ ^[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+    echo "Malformed allowlist entry in $ALLOWLIST_FILE: $view_name" >&2
+    exit 1
+  fi
+  ALLOWED_VIEWS+="${view_name}"$'\n'
+done < "$ALLOWLIST_FILE"
+
+if [[ -z "$ALLOWED_VIEWS" ]]; then
+  echo "No allowlisted views found in $ALLOWLIST_FILE." >&2
+  exit 1
+fi
+
 FELTS_AI_PASSWORD="$(sed -n 's/^FELTS_AI_PASSWORD=//p' "$ENV_FILE")"
 if [[ -z "$FELTS_AI_PASSWORD" || "$ROTATE_AI_PASSWORD" == true ]]; then
   FELTS_AI_PASSWORD="$(openssl rand -hex 24)"
@@ -43,7 +64,9 @@ docker compose exec -T postgres psql -U postgres -d postgres -Atqc \
    )::int" | grep -qx '1'
 
 docker compose exec -T postgres psql -U postgres -d felts \
-  -v ai_password="$FELTS_AI_PASSWORD" <<'SQL'
+  -v ON_ERROR_STOP=1 \
+  -v ai_password="$FELTS_AI_PASSWORD" \
+  -v allowed_views="$ALLOWED_VIEWS" <<'SQL'
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'felts_ai') THEN
@@ -58,27 +81,33 @@ ALTER ROLE felts_ai SET statement_timeout = '15s';
 ALTER ROLE felts_ai SET idle_in_transaction_session_timeout = '30s';
 
 GRANT CONNECT ON DATABASE felts TO felts_ai;
-GRANT USAGE ON SCHEMA public TO felts_ai;
+
+CREATE TEMP TABLE felts_ai_allowed_views(view_ref text);
+INSERT INTO felts_ai_allowed_views(view_ref)
+SELECT DISTINCT trim(value)
+FROM unnest(string_to_array(:'allowed_views', E'\n')) AS value
+WHERE trim(value) <> '';
 
 DO $$
 DECLARE
+  view_ref text;
+  view_schema text;
   view_name text;
 BEGIN
-  FOREACH view_name IN ARRAY ARRAY[
-    'mart_coingecko__asset_platforms',
-    'mart_coingecko__coins',
-    'stg_alphavantage__time_series_daily',
-    'stg_coingecko__asset_platforms_list',
-    'stg_coingecko__coins_list',
-    'stg_coingecko__coins_markets',
-    'stg_coingecko__global',
-    'stg_coingecko__global_defi',
-    'stg_csv_import__fred_series',
-    'stg_csv_import__ohlcv'
-  ]
+  FOR view_schema IN
+    SELECT DISTINCT split_part(allowed.view_ref, '.', 1)
+    FROM felts_ai_allowed_views AS allowed
   LOOP
-    IF to_regclass('public.' || view_name) IS NOT NULL THEN
-      EXECUTE format('GRANT SELECT ON TABLE public.%I TO felts_ai', view_name);
+    IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = view_schema) THEN
+      EXECUTE format('GRANT USAGE ON SCHEMA %I TO felts_ai', view_schema);
+    END IF;
+  END LOOP;
+
+  FOR view_ref IN SELECT allowed.view_ref FROM felts_ai_allowed_views AS allowed LOOP
+    view_schema := split_part(view_ref, '.', 1);
+    view_name := split_part(view_ref, '.', 2);
+    IF to_regclass(format('%I.%I', view_schema, view_name)) IS NOT NULL THEN
+      EXECUTE format('GRANT SELECT ON TABLE %I.%I TO felts_ai', view_schema, view_name);
     END IF;
   END LOOP;
 END
