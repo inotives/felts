@@ -18,11 +18,11 @@ PostgreSQL on the LAN or granting mutation privileges.
   the MCP server and tunnel run only when agent access is needed.
 - Agent access uses a dedicated PostgreSQL role rather than application or
   administrator credentials.
-- The agent may query views in the `public` schema, including dbt staging and mart
-  views.
+- The agent may query only explicitly allowlisted analytical views across approved
+  schemas such as `public`, `coingecko`, and `csv_import`.
 - Raw source schemas and raw provider payload tables are excluded.
-- Access is granted to views rather than broadly to every current or future object in
-  `public`.
+- Access is granted only to committed allowlisted views rather than broadly to every
+  current or future object in an approved schema.
 - Agent access is on-demand. The SSH tunnel and MCP server are started explicitly for
   an interactive agent session and are not installed as persistent background services.
 - A single local launcher owns the access-session lifecycle:
@@ -98,22 +98,24 @@ PostgreSQL on the LAN or granting mutation privileges.
 - The MCP is identified as Felts production analytical data so agents do not confuse it
   with a general-purpose local PostgreSQL connection.
 - The canonical MCP registration name is `felts-prod-data` in both Codex and OpenCode.
-- Allowed views are defined by an explicit committed allowlist.
-- `list_views` returns only allowlisted views; it does not expose every object discovered
-  in `public`.
+- Allowed views are defined by an explicit committed schema-qualified allowlist.
+- `settings/felts-prod-data-views.txt` is the single source of truth for both MCP view
+  policy and access-grant reconciliation.
+- `list_views` returns only allowlisted views exactly as committed; it does not expose
+  every object discovered in approved schemas.
 - New dbt views require deliberate review and an allowlist change before agents can
   discover, describe, or query them.
 - The initial allowlist contains:
-  - `mart_coingecko__asset_platforms`;
-  - `mart_coingecko__coins`;
-  - `stg_alphavantage__time_series_daily`;
-  - `stg_coingecko__asset_platforms_list`;
-  - `stg_coingecko__coins_list`;
-  - `stg_coingecko__coins_markets`;
-  - `stg_coingecko__global`;
-  - `stg_coingecko__global_defi`;
-  - `stg_csv_import__fred_series`;
-  - `stg_csv_import__ohlcv`.
+  - `coingecko.mart_coingecko__asset_platforms`;
+  - `coingecko.mart_coingecko__coins`;
+  - `public.stg_alphavantage__time_series_daily`;
+  - `coingecko.stg_coingecko__asset_platforms_list`;
+  - `coingecko.stg_coingecko__coins_list`;
+  - `coingecko.stg_coingecko__coins_markets`;
+  - `coingecko.stg_coingecko__global`;
+  - `coingecko.stg_coingecko__global_defi`;
+  - `csv_import.stg_csv_import__fred_series`;
+  - `csv_import.stg_csv_import__ohlcv`.
 - Future analytical views can be added through a reviewed allowlist-only change; this
   does not require a new MCP tool or protocol change.
 - `describe_view` returns:
@@ -126,11 +128,13 @@ PostgreSQL on the LAN or granting mutation privileges.
   the MCP server.
 - `query` accepts exactly one SQL statement whose top-level operation is `SELECT` or
   `WITH ... SELECT`.
+- Queries must reference allowlisted relations by exact schema-qualified name; bare view
+  names are rejected.
 - The server rejects:
   - SQL comments and semicolons;
   - data-modifying CTEs;
   - `SELECT INTO`;
-  - references outside allowlisted `public` views;
+  - references outside allowlisted schema-qualified views;
   - function calls outside an explicit safe set.
 - PostgreSQL read-only privileges and connection defaults remain the final security
   backstop if MCP validation is bypassed or incorrect.
@@ -150,7 +154,7 @@ PostgreSQL on the LAN or granting mutation privileges.
   - generates the role password on first provisioning and preserves it on reruns;
   - stores it only in production `settings/.env.prod`;
   - applies read-only connection defaults and query timeouts;
-  - grants database connection and schema usage;
+  - grants database connection plus `USAGE` on each allowlisted schema;
   - grants `SELECT` only on the committed allowlisted views;
   - revokes obsolete view grants when an allowlisted view is removed.
 - The operator copies the generated `felts_ai` credential once into the ignored local
@@ -162,7 +166,8 @@ PostgreSQL on the LAN or granting mutation privileges.
 - Re-enabling access uses `ALTER ROLE felts_ai LOGIN` after operator approval.
 - Operator commands are:
   - `scripts/deploy-linux-mint.sh` for normal idempotent provisioning;
-  - `scripts/deploy-linux-mint.sh --rotate-ai-password` for explicit credential rotation;
+  - `scripts/update-prod-data-access.sh --rotate-ai-password` for explicit credential
+    rotation;
   - `scripts/manage-prod-data-access.sh disable` to revoke login;
   - `scripts/manage-prod-data-access.sh enable` to restore login.
 - Local MCP configuration lives in ignored `settings/.env.mcp.local`.
@@ -208,14 +213,15 @@ PostgreSQL on the LAN or granting mutation privileges.
   not, the PR documents the exact manual registration and verification steps.
 - Each client can list exactly the committed allowlisted views.
 - Each client can describe at least:
-  - `stg_alphavantage__time_series_daily`;
-  - `mart_coingecko__coins`.
+  - `public.stg_alphavantage__time_series_daily`;
+  - `coingecko.mart_coingecko__coins`.
 - Each client can run a bounded aggregate query against production and receive the
   documented JSON-compatible result contract.
 - The MCP rejects:
   - a query referencing a raw source table;
   - a mutation statement;
   - a non-aggregate row-returning query without `LIMIT`;
+  - a bare unqualified allowlisted view reference;
   - a query using a non-allowlisted function.
 - The PostgreSQL `felts_ai` role cannot mutate data when tested independently of MCP
   validation.
@@ -224,8 +230,8 @@ PostgreSQL on the LAN or granting mutation privileges.
   LAN.
 - Audit records contain query hashes and metadata but no SQL text, result data, or
   credentials.
-- Unit tests cover SQL policy validation, view allowlisting, result serialization,
-  truncation, auditing, and launcher failure cleanup.
+- Unit tests cover SQL policy validation, schema-qualified view allowlisting, result
+  serialization, truncation, auditing, and launcher failure cleanup.
 
 ## Out of Scope Until Explicitly Approved
 

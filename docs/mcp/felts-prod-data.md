@@ -3,6 +3,10 @@
 `felts-prod-data` exposes allowlisted Felts production analytical views to MCP
 clients through `scripts/felts-prod-data-mcp`.
 
+The committed allowlist in `settings/felts-prod-data-views.txt` is schema-qualified and
+is the single source of truth for both MCP query policy and the rerunnable access-grant
+script. Queries must reference allowlisted views by exact `schema.view` name.
+
 ## Local setup
 
 1. Copy the local environment template:
