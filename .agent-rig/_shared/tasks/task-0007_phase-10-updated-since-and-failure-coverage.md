@@ -2,7 +2,7 @@
 id: task-0007
 title: "Phase 10: updated-since and failure coverage"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-14
@@ -11,7 +11,11 @@ priority: normal
 parent: ""
 depends_on:
   - task-0006
+message: Reviewed updated-since filtering and malformed JSON coverage. Focused
+  pytest, ruff, and mypy checks passed; accepted.
 ---
+
+
 
 # Task
 
@@ -57,15 +61,30 @@ checkpoint files.
 
 ## Acceptance Criteria
 
-- [ ] `felts agent-pipe import --sqlite-path <path> --updated-since <timestamp>` is
+- [x] `felts agent-pipe import --sqlite-path <path> --updated-since <timestamp>` is
   accepted.
-- [ ] Rows with `updated_at` after the filter are imported.
-- [ ] Rows before the filter are skipped.
-- [ ] Omitted `--updated-since` imports all rows.
-- [ ] Soft-deleted rows are still imported when they match the filter.
-- [ ] Malformed `payload_json` fails clearly.
-- [ ] Malformed non-empty `metadata_json` fails clearly.
-- [ ] No stored cursor or scheduler state is added.
-- [ ] Focused tests pass.
+- [x] Rows with `updated_at` after the filter are imported.
+- [x] Rows before the filter are skipped.
+- [x] Omitted `--updated-since` imports all rows.
+- [x] Soft-deleted rows are still imported when they match the filter.
+- [x] Malformed `payload_json` fails clearly.
+- [x] Malformed non-empty `metadata_json` fails clearly.
+- [x] No stored cursor or scheduler state is added.
+- [x] Focused tests pass.
 
 ## Notes
+
+- Threaded optional `updated_since` through
+  `AgentPipeSQLiteExtractor`, `run_agent_pipe_import(...)`, and
+  `felts agent-pipe import --updated-since`.
+- Filter uses parsed ISO timestamps from `records.updated_at`, preserving
+  soft-deleted rows that match the caller-provided cutoff.
+- Added malformed non-empty `metadata_json` coverage; empty/null metadata still
+  becomes `{}`.
+- Verification:
+  - `python3 -m uv run --group dev pytest tests/unit/sources/agent_pipe -q`
+    -> `8 passed`
+  - `python3 -m uv run --group dev ruff check src/felts/sources/agent_pipe tests/unit/sources/agent_pipe`
+    -> `All checks passed!`
+  - `python3 -m uv run --group dev mypy src/felts/sources/agent_pipe tests/unit/sources/agent_pipe`
+    -> `Success: no issues found in 8 source files`

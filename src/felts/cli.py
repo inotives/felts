@@ -7,6 +7,7 @@ from collections.abc import Sequence
 
 from felts.sources.coingecko.cli import register_cli as register_coingecko_cli
 from felts.sources.csv_import.cli import register_cli as register_csv_cli
+from felts.sources.agent_pipe.cli import register_cli as register_agent_pipe_cli
 
 # scaffold: source-cli-imports:start
 from felts.sources.alphavantage.cli import register_cli as register_alphavantage_cli
@@ -28,6 +29,7 @@ def _build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command")
     register_coingecko_cli(subparsers)
     register_csv_cli(subparsers)
+    register_agent_pipe_cli(subparsers)
     # scaffold: source-cli-registrations:start
     register_alphavantage_cli(subparsers)
     # scaffold: source-cli-registrations:end
