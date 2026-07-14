@@ -2,7 +2,7 @@
 id: task-0005
 title: "Phase 10: agent-pipe SQLite extractor contract"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-14
@@ -10,7 +10,11 @@ updated_on: 2026-07-14
 priority: normal
 parent: ""
 depends_on: []
+message: Reviewed agent-pipe SQLite extractor contract. Focused pytest, ruff,
+  and mypy checks passed; accepted.
 ---
+
+
 
 # Task
 
@@ -64,13 +68,25 @@ not introduce a loader schema override, replication abstraction, or dbt layer.
 
 ## Acceptance Criteria
 
-- [ ] A temporary SQLite database with the agent-pipe `records` schema can be read.
-- [ ] `project_id` `agent-pipe` maps to `ExtractedRecord.source == "agent_pipe"`.
-- [ ] `records.entity` is preserved as `ExtractedRecord.entity`.
-- [ ] `records.id` is used as `ExtractedRecord.source_record_id`.
-- [ ] The envelope contains agent-pipe row metadata and parsed payload JSON.
-- [ ] Rows with non-null `deleted_at` are emitted, not filtered.
-- [ ] No code reads `job_runs` or `schema_migrations`.
-- [ ] Focused unit tests for the extractor pass.
+- [x] A temporary SQLite database with the agent-pipe `records` schema can be read.
+- [x] `project_id` `agent-pipe` maps to `ExtractedRecord.source == "agent_pipe"`.
+- [x] `records.entity` is preserved as `ExtractedRecord.entity`.
+- [x] `records.id` is used as `ExtractedRecord.source_record_id`.
+- [x] The envelope contains agent-pipe row metadata and parsed payload JSON.
+- [x] Rows with non-null `deleted_at` are emitted, not filtered.
+- [x] No code reads `job_runs` or `schema_migrations`.
+- [x] Focused unit tests for the extractor pass.
 
 ## Notes
+
+- Added `src/felts/sources/agent_pipe/` with a stdlib `sqlite3` extractor that
+  selects only the `records` table and emits Felts `ExtractedRecord` objects.
+- Added focused temp-SQLite tests in
+  `tests/unit/sources/agent_pipe/test_extractor.py`.
+- Verification:
+  - `python3 -m uv run --group dev pytest tests/unit/sources/agent_pipe/test_extractor.py -q`
+    -> `2 passed`
+  - `python3 -m uv run --group dev ruff check src/felts/sources/agent_pipe tests/unit/sources/agent_pipe`
+    -> `All checks passed!`
+  - `python3 -m uv run --group dev mypy src/felts/sources/agent_pipe tests/unit/sources/agent_pipe`
+    -> `Success: no issues found in 4 source files`

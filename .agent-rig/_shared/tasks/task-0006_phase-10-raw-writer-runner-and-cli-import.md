@@ -2,7 +2,7 @@
 id: task-0006
 title: "Phase 10: raw writer runner and CLI import"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-14
@@ -11,7 +11,11 @@ priority: normal
 parent: ""
 depends_on:
   - task-0005
+message: Reviewed raw writer runner and CLI import. Focused pytest, ruff, and
+  mypy checks passed; accepted.
 ---
+
+
 
 # Task
 
@@ -65,14 +69,28 @@ needed.
 
 ## Acceptance Criteria
 
-- [ ] `felts agent-pipe import --sqlite-path <path>` is registered.
-- [ ] Missing `--sqlite-path` fails through argparse.
-- [ ] The runner uses the existing `RawWriter` path.
-- [ ] The runner returns a `SourceRunSummary`.
-- [ ] Multiple agent-pipe entities produce separate entity summaries.
-- [ ] For project id `agent-pipe`, records are written with source `agent_pipe`,
+- [x] `felts agent-pipe import --sqlite-path <path>` is registered.
+- [x] Missing `--sqlite-path` fails through argparse.
+- [x] The runner uses the existing `RawWriter` path.
+- [x] The runner returns a `SourceRunSummary`.
+- [x] Multiple agent-pipe entities produce separate entity summaries.
+- [x] For project id `agent-pipe`, records are written with source `agent_pipe`,
   allowing the existing loader to target `agent_pipe.raw_<entity>`.
-- [ ] No loader schema override is introduced.
-- [ ] Focused runner and CLI tests pass.
+- [x] No loader schema override is introduced.
+- [x] Focused runner and CLI tests pass.
 
 ## Notes
+
+- Added `run_agent_pipe_import(...)` in
+  `src/felts/sources/agent_pipe/runner.py`, using `RawWriter`,
+  `create_loader(settings)`, and `settings.loader_batch_size`.
+- Added `felts agent-pipe import --sqlite-path <path>` CLI wiring through
+  `src/felts/sources/agent_pipe/cli.py` and `src/felts/cli.py`.
+- Added focused runner and CLI tests under `tests/unit/sources/agent_pipe/`.
+- Verification:
+  - `python3 -m uv run --group dev pytest tests/unit/sources/agent_pipe -q`
+    -> `5 passed`
+  - `python3 -m uv run --group dev ruff check src/felts/cli.py src/felts/sources/agent_pipe tests/unit/sources/agent_pipe`
+    -> `All checks passed!`
+  - `python3 -m uv run --group dev mypy src/felts/cli.py src/felts/sources/agent_pipe tests/unit/sources/agent_pipe`
+    -> `Success: no issues found in 9 source files`
