@@ -1,8 +1,8 @@
 # Felts Project Specifications
 
 **Version:** 2.0.0
-**Last Updated:** 2026-06-24
-**Status:** Implemented through Phase 06
+**Last Updated:** 2026-07-19
+**Status:** Implemented through Phase 10
 
 Felts is a financial ELT system that extracts source data, preserves raw evidence in
 Postgres, transforms it with dbt, and orchestrates operational runs with Prefect.
@@ -13,22 +13,25 @@ it.
 
 ## 1. Implemented Scope
 
-Phases 01 through 06 delivered:
+Phases 01 through 10 delivered:
 
 - Shared extraction, validation, writing, loading, and source-run contracts.
 - Postgres and TimescaleDB raw landing with deterministic idempotency.
 - A complete CoinGecko REST ingestion path.
+- Alpha Vantage daily time-series ingestion.
 - dbt source, staging, and mart models.
 - Prefect source deployments, Raw Completion Events, and scoped dbt transforms.
 - YAML-driven local CSV imports for OHLCV and FRED series data.
 - Bounded CSV backfills.
 - Environment-specific settings files.
+- Constrained production analytical data access through the Felts MCP server.
+- Agent-pipe SQLite raw ingestion.
 - Fast CI, DB-backed integration checks, and a local operations runbook.
 
 The working pipeline is:
 
 ```text
-API or CSV
+API, CSV, or agent-pipe SQLite
   -> ExtractedRecord
   -> RawWriter validation and RawRecord construction
   -> Postgres raw source schema
