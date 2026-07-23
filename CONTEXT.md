@@ -68,6 +68,18 @@ _Avoid_: raw view, mart
 A consumer-facing analytical model built from staging or intermediate models.
 _Avoid_: staging model, raw table
 
+**Internal Asset**:
+A Felts-owned identity for an asset that may appear in one or more **Sources**.
+_Avoid_: provider coin, provider symbol
+
+**Internal Asset Platform**:
+A Felts-owned identity for a platform or network used to relate source-specific platform identifiers.
+_Avoid_: provider platform, chain table
+
+**Asset Provider Mapping**:
+A curated relationship between an **Internal Asset** and the identifier a **Source** uses for that asset.
+_Avoid_: inferred mapping, symbol match
+
 **Declared Grain**:
 The exact uniqueness contract for rows in a transformed model.
 _Avoid_: primary key, dedup key
@@ -88,6 +100,8 @@ _Avoid_: primary key, dedup key
 - A **Raw Entity Table** persists **RawRecords** for one **Entity**.
 - A **Staging Model** derives from raw source data and has one **Declared Grain**.
 - A **Mart Model** derives from transformed models and has one **Declared Grain**.
+- An **Internal Asset** may have many **Asset Provider Mappings**.
+- An **Asset Provider Mapping** links one **Internal Asset** to one **Source** identifier.
 
 ## Example dialogue
 
