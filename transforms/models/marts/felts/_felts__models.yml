@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: mart_felts__assets
+    description: Curated Felts-owned internal asset identifiers.
+    columns:
+      - name: internal_asset_id
+        tests:
+          - not_null
+          - unique
+      - name: asset_name
+        tests:
+          - not_null
+      - name: asset_symbol
+        tests:
+          - not_null
+      - name: asset_type
+        tests:
+          - not_null
+
+  - name: mart_felts__asset_platforms
+    description: Curated Felts-owned internal asset platform identifiers.
+    columns:
+      - name: internal_asset_platform_id
+        tests:
+          - not_null
+          - unique
+      - name: asset_platform_name
+        tests:
+          - not_null
+
+  - name: mart_felts__asset_provider_mappings
+    description: Curated mappings from Felts internal assets to provider identifiers.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - provider_source
+              - provider_asset_id
+    columns:
+      - name: internal_asset_id
+        tests:
+          - not_null
+      - name: provider_source
+        tests:
+          - not_null
+      - name: provider_asset_id
+        tests:
+          - not_null

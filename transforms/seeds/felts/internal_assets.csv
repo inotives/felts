@@ -1,0 +1,9 @@
+internal_asset_id,asset_name,asset_symbol,asset_type
+bitcoin,Bitcoin,BTC,crypto
+ethereum,Ethereum,ETH,crypto
+solana,Solana,SOL,crypto
+apple,Apple,AAPL,stock
+taiwan-semiconductor,Taiwan Semiconductor,TSM,stock
+nvidia,NVIDIA,NVDA,stock
+spcx,SPCX,SPCX,stock
+usd,US Dollar,USD,currency

@@ -1,0 +1,19 @@
+select
+    coin_id,
+    coin_symbol,
+    coin_name,
+    current_price_usd,
+    market_cap_usd,
+    market_cap_rank,
+    total_volume_usd,
+    price_change_percentage_24h,
+    circulating_supply,
+    total_supply,
+    observed_at,
+    extracted_at,
+    loaded_at,
+    raw_record_id,
+    source_record_id,
+    batch_id,
+    raw_payload
+from {{ ref('stg_coingecko__coins_markets') }}

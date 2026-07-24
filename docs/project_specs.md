@@ -1,8 +1,8 @@
 # Felts Project Specifications
 
 **Version:** 2.0.0
-**Last Updated:** 2026-07-19
-**Status:** Implemented through Phase 10
+**Last Updated:** 2026-07-24
+**Status:** Implemented through Phase 11
 
 Felts is a financial ELT system that extracts source data, preserves raw evidence in
 Postgres, transforms it with dbt, and orchestrates operational runs with Prefect.
@@ -258,11 +258,29 @@ Implemented CoinGecko marts:
 
 - `mart_coingecko__coins`
 - `mart_coingecko__asset_platforms`
+- `mart_coingecko__coin_market_snapshots`
+- `mart_coingecko__global_market_snapshots`
+- `mart_coingecko__global_defi_snapshots`
+
+Implemented Alpha Vantage marts:
+
+- `mart_alphavantage__daily_prices`
 
 Implemented CSV staging models:
 
 - `stg_csv_import__ohlcv`
 - `stg_csv_import__fred_series`
+
+Implemented CSV marts:
+
+- `mart_csv_import__ohlcv`
+- `mart_csv_import__fred_observations`
+
+Implemented Felts internal marts:
+
+- `mart_felts__assets`
+- `mart_felts__asset_platforms`
+- `mart_felts__asset_provider_mappings`
 
 Staging models:
 
@@ -271,8 +289,9 @@ Staging models:
 - Filter invalid raw rows.
 - Deduplicate using each model's declared grain and ordering rules.
 
-dbt model tests enforce required fields and uniqueness where defined. There are no CSV
-mart models yet.
+dbt model tests enforce required fields and uniqueness where defined. Provider marts
+stay provider-native, while the `felts` schema adds curated internal asset identity
+and provider mapping joins for opt-in cross-provider use.
 
 ## 9. Prefect Orchestration
 

@@ -2,7 +2,7 @@
 id: task-0011
 title: "Phase 11: Alpha Vantage and CSV marts"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-24
@@ -12,6 +12,9 @@ parent: ""
 depends_on:
   - task-0010
 ---
+
+
+
 
 
 
@@ -75,4 +78,12 @@ consumer tables over staging.
 - [ ] Focused verification results are recorded in `## Notes`.
 
 ## Notes
-
+- Implemented the missing Alpha Vantage and CSV marts as direct selects from their
+  matching staging models, preserving source-native identifiers and lineage fields.
+- Added mart schema config for `marts/alphavantage` and `marts/csv_import`.
+- Extended the Alpha Vantage and CSV model YAML files with mart descriptions and
+  grain tests.
+- Verification on 2026-07-24:
+  - `env UV_CACHE_DIR=/tmp/felts-uv-cache uv run dbt parse --project-dir transforms --profiles-dir transforms` succeeded.
+  - `env UV_CACHE_DIR=/tmp/felts-uv-cache uv run dbt run --project-dir transforms --profiles-dir transforms --select mart_alphavantage__daily_prices mart_csv_import__ohlcv mart_csv_import__fred_observations` failed at Postgres connect with `Operation not permitted` to `localhost:5432` in the sandbox.
+  - `env UV_CACHE_DIR=/tmp/felts-uv-cache uv run dbt test --project-dir transforms --profiles-dir transforms --select mart_alphavantage__daily_prices mart_csv_import__ohlcv mart_csv_import__fred_observations` failed at the same Postgres connect step.

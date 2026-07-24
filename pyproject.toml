@@ -64,6 +64,16 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+".agent-rig/_shared/skills/skill-creator/eval-viewer/generate_review.py" = ["E501"]
+".agent-rig/_shared/skills/skill-creator/scripts/aggregate_benchmark.py" = ["E501"]
+".agent-rig/_shared/skills/skill-creator/scripts/generate_report.py" = ["E501"]
+".agent-rig/_shared/skills/skill-creator/scripts/improve_description.py" = ["E501"]
+".agent-rig/_shared/skills/skill-creator/scripts/quick_validate.py" = ["E501"]
+".agent-rig/_shared/skills/skill-creator/scripts/run_eval.py" = ["E501"]
+".agent-rig/_shared/skills/skill-creator/scripts/run_loop.py" = ["E501"]
+".agent-rig/_shared/skills/skill-creator/scripts/utils.py" = ["E501"]
+
 [tool.mypy]
 python_version = "3.12"
 files = ["src/felts", "tests"]

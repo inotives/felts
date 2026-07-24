@@ -2,7 +2,7 @@
 id: task-0010
 title: "Phase 11: broad CoinGecko mart completion"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-24
@@ -12,6 +12,9 @@ parent: ""
 depends_on:
   - task-0009
 ---
+
+
+
 
 
 
@@ -75,4 +78,11 @@ against the `felts` schema; CoinGecko marts remain provider-native.
 - [ ] Focused verification results are recorded in `## Notes`.
 
 ## Notes
-
+- Implemented the three missing broad CoinGecko marts as direct selects from the
+  matching staging models, preserving provider-native identifiers and lineage fields.
+- Extended CoinGecko model YAML with mart descriptions plus grain tests for market
+  snapshots and global snapshot marts.
+- Verification on 2026-07-23:
+  - `env UV_CACHE_DIR=/tmp/felts-uv-cache uv run dbt parse --project-dir transforms --profiles-dir transforms` succeeded.
+  - `env UV_CACHE_DIR=/tmp/felts-uv-cache uv run dbt run --project-dir transforms --profiles-dir transforms --select mart_coingecko__coins mart_coingecko__asset_platforms mart_coingecko__coin_market_snapshots mart_coingecko__global_market_snapshots mart_coingecko__global_defi_snapshots` failed at Postgres connect with `Operation not permitted` to `localhost:5432` in the sandbox.
+  - `env UV_CACHE_DIR=/tmp/felts-uv-cache uv run dbt test --project-dir transforms --profiles-dir transforms --select mart_coingecko__coins mart_coingecko__asset_platforms mart_coingecko__coin_market_snapshots mart_coingecko__global_market_snapshots mart_coingecko__global_defi_snapshots` failed at the same Postgres connect step.
