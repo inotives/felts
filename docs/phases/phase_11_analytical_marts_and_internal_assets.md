@@ -12,11 +12,10 @@ they need cross-provider joins.
 
 ## Context
 
-- Felts is implemented through Phase 10.
+- Felts is implemented through Phase 11.
 - CoinGecko currently has reference marts for coins and asset platforms.
-- CoinGecko staging also contains market, global, and DeFi snapshots that do not yet
-  have marts.
-- Alpha Vantage and CSV import have staging models but no mart models.
+- CoinGecko staging also contains broad market, global, and DeFi snapshot marts.
+- Alpha Vantage and CSV import both have source-owned marts over their staging models.
 - Agent-pipe stops at raw landing and has no stable staging or mart contract yet.
 - The existing dbt schema macro honors explicit `+schema` config, so a `felts`
   mart schema can be added through dbt project configuration.

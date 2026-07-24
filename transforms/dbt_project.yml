@@ -26,5 +26,16 @@ models:
         +schema: csv_import
     marts:
       +materialized: table
+      alphavantage:
+        +schema: alphavantage
       coingecko:
         +schema: coingecko
+      csv_import:
+        +schema: csv_import
+      felts:
+        +schema: felts
+
+seeds:
+  felts:
+    felts:
+      +schema: felts

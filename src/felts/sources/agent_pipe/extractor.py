@@ -76,9 +76,7 @@ def _record(row: sqlite3.Row) -> ExtractedRecord:
                 "updated_at": row["updated_at"],
                 "deleted_at": row["deleted_at"],
             },
-            "payload": _parse_json(
-                row["payload_json"], field_name="payload_json", row_id=row_id
-            ),
+            "payload": _parse_json(row["payload_json"], field_name="payload_json", row_id=row_id),
         },
     )
 

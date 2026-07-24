@@ -1,0 +1,22 @@
+select
+    asset_slug,
+    source_asset_id,
+    time_open,
+    time_close,
+    time_high,
+    time_low,
+    observed_at,
+    open,
+    high,
+    low,
+    close,
+    volume,
+    market_cap,
+    circulating_supply,
+    extracted_at,
+    loaded_at,
+    raw_record_id,
+    source_record_id,
+    batch_id,
+    raw_payload
+from {{ ref('stg_csv_import__ohlcv') }}

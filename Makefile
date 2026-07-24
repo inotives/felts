@@ -1,6 +1,14 @@
 SHELL := /usr/bin/env bash
 
 UV := uv
+VENV_BIN ?= .venv/bin
+RUFF := $(VENV_BIN)/ruff
+PYTHON := $(VENV_BIN)/python
+PYTEST := $(VENV_BIN)/pytest
+MYPY := $(VENV_BIN)/mypy
+DBT := $(VENV_BIN)/dbt
+PREFECT := $(VENV_BIN)/prefect
+FELTS := $(VENV_BIN)/felts
 DOCKER_COMPOSE := docker compose
 DBT_PROJECT_DIR ?= transforms
 DBT_PROFILES_DIR ?= transforms
@@ -22,27 +30,27 @@ install: venv ## Install all local dependency groups.
 
 .PHONY: lint
 lint: ## Run Ruff lint checks.
-	$(UV) run ruff check .
+	$(RUFF) check .
 
 .PHONY: format
 format: ## Format Python files with Ruff.
-	$(UV) run ruff format .
+	$(RUFF) format .
 
 .PHONY: format-check
 format-check: ## Check Python formatting with Ruff.
-	$(UV) run ruff format --check .
+	$(RUFF) format --check .
 
 .PHONY: typecheck
 typecheck: ## Run mypy type checks.
-	$(UV) run mypy
+	$(MYPY)
 
 .PHONY: test
 test: ## Run fast unit tests.
-	$(UV) run pytest tests/unit
+	$(PYTEST) tests/unit
 
 .PHONY: test-integration
 test-integration: db-bootstrap ## Run DB-backed integration tests.
-	$(UV) run pytest tests/integration
+	$(PYTEST) tests/integration
 
 .PHONY: db-up
 db-up: ## Start local Postgres.
@@ -81,50 +89,50 @@ db-bootstrap: db-up ## Apply local SQL bootstrap files that may not run on exist
 dbt-debug: db-up ## Verify dbt project/profile and Postgres connectivity.
 	@test -f $(DBT_PROFILES_DIR)/profiles.yml || cp $(DBT_PROFILES_DIR)/profiles.yml.example $(DBT_PROFILES_DIR)/profiles.yml
 	FELTS_DBT_PROJECT_DIR=$(DBT_PROJECT_DIR) FELTS_DBT_PROFILES_DIR=$(DBT_PROFILES_DIR) \
-		$(UV) run dbt debug --project-dir $(DBT_PROJECT_DIR) --profiles-dir $(DBT_PROFILES_DIR)
+		$(DBT) debug --project-dir $(DBT_PROJECT_DIR) --profiles-dir $(DBT_PROFILES_DIR)
 
 .PHONY: dbt-run
 dbt-run: db-up ## Build dbt transform models from local raw tables.
 	@test -f $(DBT_PROFILES_DIR)/profiles.yml || cp $(DBT_PROFILES_DIR)/profiles.yml.example $(DBT_PROFILES_DIR)/profiles.yml
 	FELTS_DBT_PROJECT_DIR=$(DBT_PROJECT_DIR) FELTS_DBT_PROFILES_DIR=$(DBT_PROFILES_DIR) \
-		$(UV) run dbt run --project-dir $(DBT_PROJECT_DIR) --profiles-dir $(DBT_PROFILES_DIR)
+		$(DBT) run --project-dir $(DBT_PROJECT_DIR) --profiles-dir $(DBT_PROFILES_DIR)
 
 .PHONY: dbt-test
 dbt-test: db-up ## Run dbt data tests.
 	@test -f $(DBT_PROFILES_DIR)/profiles.yml || cp $(DBT_PROFILES_DIR)/profiles.yml.example $(DBT_PROFILES_DIR)/profiles.yml
 	FELTS_DBT_PROJECT_DIR=$(DBT_PROJECT_DIR) FELTS_DBT_PROFILES_DIR=$(DBT_PROFILES_DIR) \
-		$(UV) run dbt test --project-dir $(DBT_PROJECT_DIR) --profiles-dir $(DBT_PROFILES_DIR)
+		$(DBT) test --project-dir $(DBT_PROJECT_DIR) --profiles-dir $(DBT_PROFILES_DIR)
 
 .PHONY: prefect-check
 prefect-check: ## Verify Prefect and project config load.
-	PREFECT_API_DATABASE_CONNECTION_URL=$(PREFECT_API_DATABASE_CONNECTION_URL) $(UV) run prefect version
-	$(UV) run python -c "from felts.config import get_settings; s = get_settings(); print(f'Prefect API: {s.prefect_api_url}'); print(f'Prefect DB: {s.prefect_api_database_connection_url}')"
+	PREFECT_API_DATABASE_CONNECTION_URL=$(PREFECT_API_DATABASE_CONNECTION_URL) $(PREFECT) version
+	$(PYTHON) -c "from felts.config import get_settings; s = get_settings(); print(f'Prefect API: {s.prefect_api_url}'); print(f'Prefect DB: {s.prefect_api_database_connection_url}')"
 
 .PHONY: prefect-server
 prefect-server: db-up ## Start a local Prefect server backed by Dockerized Postgres.
 	PREFECT_API_DATABASE_CONNECTION_URL=$(PREFECT_API_DATABASE_CONNECTION_URL) \
-		$(UV) run prefect server start --host 0.0.0.0
+		$(PREFECT) server start --host 0.0.0.0
 
 .PHONY: prefect-worker
 prefect-worker: ## Start a local Prefect worker for the configured work pool.
-	@work_pool="$$( $(UV) run python -c "from felts.config import get_settings; print(get_settings().prefect_work_pool)" )"; \
-	work_queue="$$( $(UV) run python -c "from felts.config import get_settings; print(get_settings().prefect_work_queue)" )"; \
+	@work_pool="$$( $(PYTHON) -c "from felts.config import get_settings; print(get_settings().prefect_work_pool)" )"; \
+	work_queue="$$( $(PYTHON) -c "from felts.config import get_settings; print(get_settings().prefect_work_queue)" )"; \
 	PREFECT_CLIENT_CSRF_SUPPORT_ENABLED=false \
-		$(UV) run prefect worker start --pool "$$work_pool" --work-queue "$$work_queue"
+		$(PREFECT) worker start --pool "$$work_pool" --work-queue "$$work_queue"
 
 .PHONY: prefect-register
 prefect-register: db-up ## Register local Prefect work pool, deployments, and automations.
 	PREFECT_API_DATABASE_CONNECTION_URL=$(PREFECT_API_DATABASE_CONNECTION_URL) \
 		PREFECT_CLIENT_CSRF_SUPPORT_ENABLED=false \
-		$(UV) run python -m felts.schedules.orchestrator
+		$(PYTHON) -m felts.schedules.orchestrator
 
 .PHONY: coingecko-run
 coingecko-run: db-bootstrap ## Run the local CoinGecko EL slice into raw Postgres.
-	$(UV) run felts coingecko run
+	$(FELTS) coingecko run
 
 .PHONY: coingecko-smoke
 coingecko-smoke: db-bootstrap ## Run the opt-in live CoinGecko smoke path.
-	FELTS_RUN_LIVE_TESTS=1 $(UV) run felts coingecko run --entities coins_list global
+	FELTS_RUN_LIVE_TESTS=1 $(FELTS) coingecko run --entities coins_list global
 
 .PHONY: coingecko-transform
 coingecko-transform: coingecko-run dbt-run dbt-test ## Load CoinGecko raw data, then run dbt models and tests.

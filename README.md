@@ -4,14 +4,15 @@ Felts stands for **Financial ELT Stacks**. It extracts financial data from APIs
 and CSV files, preserves raw evidence in Postgres, transforms it with dbt, and
 orchestrates operational runs with Prefect.
 
-Implemented through Phase 10:
+Implemented through Phase 11:
 
 - CoinGecko REST ingestion.
 - Alpha Vantage daily time-series ingestion.
 - YAML-driven OHLCV and FRED CSV imports.
 - Agent-pipe SQLite raw imports.
 - Deterministic, idempotent raw landing in Postgres and TimescaleDB.
-- dbt staging and CoinGecko mart models.
+- dbt staging plus source-owned CoinGecko, Alpha Vantage, and CSV mart models.
+- Felts-owned internal asset, asset platform, and provider mapping marts.
 - Prefect schedules, Raw Completion Events, and scoped dbt transforms.
 - Bounded CSV backfills.
 - Local, dev, and production environment-file conventions.
@@ -43,6 +44,12 @@ csv_import.raw_fred_series
 alphavantage.raw_time_series_daily
 agent_pipe.raw_<entity>
 csv_import.stg_csv_import__fred_series
+alphavantage.mart_alphavantage__daily_prices
+csv_import.mart_csv_import__ohlcv
+csv_import.mart_csv_import__fred_observations
+felts.mart_felts__assets
+felts.mart_felts__asset_platforms
+felts.mart_felts__asset_provider_mappings
 ```
 
 ## Requirements
@@ -158,8 +165,11 @@ make dbt-test
 Implemented transforms include:
 
 - CoinGecko staging models for all five entities.
-- CoinGecko coins and asset-platform marts.
+- CoinGecko coins, asset-platform, market-snapshot, global-market, and global-DeFi marts.
+- Alpha Vantage daily-price marts.
 - OHLCV and FRED CSV staging models.
+- OHLCV and FRED CSV marts.
+- Felts internal asset, asset-platform, and asset-provider-mapping marts.
 
 ## Prefect
 

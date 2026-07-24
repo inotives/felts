@@ -89,3 +89,51 @@ models:
         tests:
           - not_null
           - unique
+
+  - name: mart_coingecko__coin_market_snapshots
+    description: Broad CoinGecko market snapshots at the staging model grain.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - coin_id
+              - observed_at
+    columns:
+      - name: coin_id
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+
+  - name: mart_coingecko__global_market_snapshots
+    description: Broad CoinGecko global market snapshots at the staging model grain.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - source_record_id
+              - extracted_at
+    columns:
+      - name: source_record_id
+        tests:
+          - not_null
+      - name: extracted_at
+        tests:
+          - not_null
+
+  - name: mart_coingecko__global_defi_snapshots
+    description: Broad CoinGecko global DeFi snapshots at the staging model grain.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - source_record_id
+              - extracted_at
+    columns:
+      - name: source_record_id
+        tests:
+          - not_null
+      - name: extracted_at
+        tests:
+          - not_null

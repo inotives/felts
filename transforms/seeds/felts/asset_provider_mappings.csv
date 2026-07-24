@@ -1,0 +1,8 @@
+internal_asset_id,provider_source,provider_asset_id
+bitcoin,coingecko,bitcoin
+ethereum,coingecko,ethereum
+solana,coingecko,solana
+apple,alphavantage,AAPL
+taiwan-semiconductor,alphavantage,TSM
+nvidia,alphavantage,NVDA
+spcx,alphavantage,SPCX
