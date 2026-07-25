@@ -16,7 +16,7 @@ This breaks the Felts project specification into implementation phases ordered b
 9. [Phase 09 - Production Data Agent Access](./_archived/phase_09_production_data_agent_access.md)
 10. [Phase 10 - Agent-Pipe SQLite Raw Ingestion](./_archived/phase_10_agent_pipe_sqlite_ingestion.md)
 11. [Phase 11 - Analytical Marts and Felts Internal Assets](./_archived/phase_11_analytical_marts_and_internal_assets.md)
-12. [Phase 12 - Analytical Access Refresh](./phases/phase_12_analytical_access_refresh.md)
+12. [Phase 12 - Analytical Access Refresh](./_archived/phase_12_analytical_access_refresh.md)
 
 ## Dependency Shape
 
