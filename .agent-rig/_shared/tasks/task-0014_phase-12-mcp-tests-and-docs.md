@@ -2,7 +2,7 @@
 id: task-0014
 title: "Phase 12: MCP tests and docs"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-25
@@ -12,6 +12,8 @@ parent: ""
 depends_on:
   - task-0013
 ---
+
+
 
 
 
@@ -70,3 +72,15 @@ Keep examples minimal and policy-focused. This phase is not a report-building ph
 
 ## Notes
 
+- Updated `tests/unit/test_prod_data_mcp.py` for the Phase 12 mart-first contract:
+  - kept the committed allowlist assertion aligned with `settings/felts-prod-data-views.txt`
+  - added accepted `validate_query` coverage for `alphavantage`, `csv_import`, and
+    `felts` mart relations
+  - added rejection coverage for removed staging relations replaced by marts
+  - expanded `describe_allowed_view` coverage to schema-qualified lookups for
+    `coingecko`, `alphavantage`, `csv_import`, and `felts`
+- Updated `docs/mcp/felts-prod-data.md` to describe mart-first MCP access, exact
+  schema-qualified relation names, and `scripts/update-prod-data-access.sh` as the
+  rerunnable production access reconciliation step.
+- Verification on 2026-07-25:
+  - `./.venv/bin/pytest tests/unit/test_prod_data_mcp.py -q` -> `30 passed in 0.22s`
