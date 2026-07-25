@@ -4,7 +4,7 @@ Felts stands for **Financial ELT Stacks**. It extracts financial data from APIs
 and CSV files, preserves raw evidence in Postgres, transforms it with dbt, and
 orchestrates operational runs with Prefect.
 
-Implemented through Phase 11:
+Implemented through Phase 12:
 
 - CoinGecko REST ingestion.
 - Alpha Vantage daily time-series ingestion.
@@ -13,6 +13,7 @@ Implemented through Phase 11:
 - Deterministic, idempotent raw landing in Postgres and TimescaleDB.
 - dbt staging plus source-owned CoinGecko, Alpha Vantage, and CSV mart models.
 - Felts-owned internal asset, asset platform, and provider mapping marts.
+- Mart-first MCP analytical access through a schema-qualified allowlist.
 - Prefect schedules, Raw Completion Events, and scoped dbt transforms.
 - Bounded CSV backfills.
 - Local, dev, and production environment-file conventions.
@@ -20,6 +21,9 @@ Implemented through Phase 11:
 
 Postgres is currently the only warehouse target. Modeled data is consumed through
 direct SQL queries; visualization is deferred.
+Production MCP access is limited to the committed mart-first schema-qualified
+allowlist in `settings/felts-prod-data-views.txt`, reconciled with
+`scripts/update-prod-data-access.sh`.
 
 ## Pipeline
 

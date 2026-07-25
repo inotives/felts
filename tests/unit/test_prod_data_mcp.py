@@ -22,16 +22,17 @@ from felts.prod_data_mcp import (
 
 def test_load_allowed_views_reads_committed_allowlist() -> None:
     assert load_allowed_views() == (
+        "alphavantage.mart_alphavantage__daily_prices",
         "coingecko.mart_coingecko__asset_platforms",
+        "coingecko.mart_coingecko__coin_market_snapshots",
         "coingecko.mart_coingecko__coins",
-        "public.stg_alphavantage__time_series_daily",
-        "coingecko.stg_coingecko__asset_platforms_list",
-        "coingecko.stg_coingecko__coins_list",
-        "coingecko.stg_coingecko__coins_markets",
-        "coingecko.stg_coingecko__global",
-        "coingecko.stg_coingecko__global_defi",
-        "csv_import.stg_csv_import__fred_series",
-        "csv_import.stg_csv_import__ohlcv",
+        "coingecko.mart_coingecko__global_defi_snapshots",
+        "coingecko.mart_coingecko__global_market_snapshots",
+        "csv_import.mart_csv_import__fred_observations",
+        "csv_import.mart_csv_import__ohlcv",
+        "felts.mart_felts__asset_platforms",
+        "felts.mart_felts__asset_provider_mappings",
+        "felts.mart_felts__assets",
     )
 
 
@@ -42,9 +43,32 @@ def test_validate_query_allows_bounded_select_from_allowlisted_view() -> None:
 
 
 def test_validate_query_allows_unbounded_aggregate() -> None:
-    sql = "select count(*) from public.stg_alphavantage__time_series_daily"
+    sql = "select count(*) from alphavantage.mart_alphavantage__daily_prices"
 
-    assert validate_query(sql) == "SELECT COUNT(*) FROM public.stg_alphavantage__time_series_daily"
+    assert (
+        validate_query(sql) == "SELECT COUNT(*) FROM alphavantage.mart_alphavantage__daily_prices"
+    )
+
+
+@pytest.mark.parametrize(
+    ("sql", "normalized"),
+    [
+        (
+            "select traded_at, close from alphavantage.mart_alphavantage__daily_prices limit 5",
+            "SELECT traded_at, close FROM alphavantage.mart_alphavantage__daily_prices LIMIT 5",
+        ),
+        (
+            "select observed_at, value from csv_import.mart_csv_import__fred_observations limit 5",
+            "SELECT observed_at, value FROM csv_import.mart_csv_import__fred_observations LIMIT 5",
+        ),
+        (
+            "select asset_id, symbol from felts.mart_felts__assets limit 5",
+            "SELECT asset_id, symbol FROM felts.mart_felts__assets LIMIT 5",
+        ),
+    ],
+)
+def test_validate_query_allows_new_schema_qualified_marts(sql: str, normalized: str) -> None:
+    assert validate_query(sql) == normalized
 
 
 @pytest.mark.parametrize(
@@ -64,8 +88,46 @@ def test_validate_query_rejects_unsafe_sql(sql: str) -> None:
         validate_query(sql)
 
 
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "select * from public.stg_alphavantage__time_series_daily limit 5",
+        "select * from coingecko.stg_coingecko__asset_platforms_list limit 5",
+        "select * from coingecko.stg_coingecko__coins_list limit 5",
+        "select * from coingecko.stg_coingecko__coins_markets limit 5",
+        "select * from coingecko.stg_coingecko__global limit 5",
+        "select * from coingecko.stg_coingecko__global_defi limit 5",
+        "select * from csv_import.stg_csv_import__fred_series limit 5",
+        "select * from csv_import.stg_csv_import__ohlcv limit 5",
+    ],
+)
+def test_validate_query_rejects_removed_staging_relations(sql: str) -> None:
+    with pytest.raises(PolicyError, match="view is not allowlisted"):
+        validate_query(sql)
+
+
+@pytest.mark.parametrize(
+    ("view_name", "expected_schema", "expected_table"),
+    [
+        ("coingecko.mart_coingecko__coins", "coingecko", "mart_coingecko__coins"),
+        (
+            "alphavantage.mart_alphavantage__daily_prices",
+            "alphavantage",
+            "mart_alphavantage__daily_prices",
+        ),
+        (
+            "csv_import.mart_csv_import__fred_observations",
+            "csv_import",
+            "mart_csv_import__fred_observations",
+        ),
+        ("felts.mart_felts__assets", "felts", "mart_felts__assets"),
+    ],
+)
 def test_describe_allowed_view_uses_schema_qualified_lookup(
     monkeypatch: pytest.MonkeyPatch,
+    view_name: str,
+    expected_schema: str,
+    expected_table: str,
 ) -> None:
     calls: list[tuple[str, tuple[str, str]]] = []
 
@@ -103,7 +165,7 @@ def test_describe_allowed_view_uses_schema_qualified_lookup(
         lambda *args, **kwargs: Connection(),
     )
 
-    description = describe_allowed_view("coingecko.mart_coingecko__coins", "dbname=x")
+    description = describe_allowed_view(view_name, "dbname=x")
 
     assert calls == [
         (
@@ -113,10 +175,10 @@ def test_describe_allowed_view_uses_schema_qualified_lookup(
                 WHERE table_schema = %s AND table_name = %s
                 ORDER BY ordinal_position
                 """,
-            ("coingecko", "mart_coingecko__coins"),
+            (expected_schema, expected_table),
         )
     ]
-    assert description["name"] == "coingecko.mart_coingecko__coins"
+    assert description["name"] == view_name
     assert description["columns"][0]["name"] == "coin_id"
 
 

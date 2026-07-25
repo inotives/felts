@@ -1,8 +1,8 @@
 # Felts Project Specifications
 
 **Version:** 2.0.0
-**Last Updated:** 2026-07-24
-**Status:** Implemented through Phase 11
+**Last Updated:** 2026-07-25
+**Status:** Implemented through Phase 12
 
 Felts is a financial ELT system that extracts source data, preserves raw evidence in
 Postgres, transforms it with dbt, and orchestrates operational runs with Prefect.
@@ -24,7 +24,8 @@ Phases 01 through 10 delivered:
 - YAML-driven local CSV imports for OHLCV and FRED series data.
 - Bounded CSV backfills.
 - Environment-specific settings files.
-- Constrained production analytical data access through the Felts MCP server.
+- Constrained mart-first production analytical data access through the Felts MCP
+  server.
 - Agent-pipe SQLite raw ingestion.
 - Fast CI, DB-backed integration checks, and a local operations runbook.
 
@@ -391,6 +392,11 @@ Additional local commands cover:
 Operational evidence currently comes from CI, Prefect run history, raw tables, dbt
 results, and direct SQL queries. A dedicated monitoring or visualization application
 is not yet part of the system.
+
+The implemented MCP access surface is the schema-qualified mart-first allowlist in
+`settings/felts-prod-data-views.txt`. Clients must query exact `schema.relation`
+names, and production grant reconciliation remains the rerunnable operator step in
+`scripts/update-prod-data-access.sh`.
 
 ## 12. Current Boundaries
 

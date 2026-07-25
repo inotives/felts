@@ -6,6 +6,22 @@ clients through `scripts/felts-prod-data-mcp`.
 The committed allowlist in `settings/felts-prod-data-views.txt` is schema-qualified and
 is the single source of truth for both MCP query policy and the rerunnable access-grant
 script. Queries must reference allowlisted views by exact `schema.view` name.
+Phase 12 makes that allowlist mart-first: when a consumer-facing mart exists, MCP
+clients should use the mart relation instead of an older staging relation.
+
+Preferred access is the committed mart surface:
+
+- `coingecko.mart_coingecko__asset_platforms`
+- `coingecko.mart_coingecko__coins`
+- `coingecko.mart_coingecko__coin_market_snapshots`
+- `coingecko.mart_coingecko__global_market_snapshots`
+- `coingecko.mart_coingecko__global_defi_snapshots`
+- `alphavantage.mart_alphavantage__daily_prices`
+- `csv_import.mart_csv_import__ohlcv`
+- `csv_import.mart_csv_import__fred_observations`
+- `felts.mart_felts__assets`
+- `felts.mart_felts__asset_platforms`
+- `felts.mart_felts__asset_provider_mappings`
 
 ## Local setup
 
@@ -75,6 +91,10 @@ Safe MCP data-access reconciliation is rerunnable after dbt creates new allowlis
 ```bash
 scripts/update-prod-data-access.sh
 ```
+
+That command reconciles the production `felts_ai` role to the committed
+`settings/felts-prod-data-views.txt` allowlist. Keep the file and the granted access
+in sync through the script instead of editing grants manually.
 
 Rotate the `felts_ai` password explicitly:
 

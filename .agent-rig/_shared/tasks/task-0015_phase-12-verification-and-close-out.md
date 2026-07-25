@@ -2,7 +2,7 @@
 id: task-0015
 title: "Phase 12: verification and close-out"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-25
@@ -12,6 +12,8 @@ parent: ""
 depends_on:
   - task-0014
 ---
+
+
 
 
 
@@ -72,3 +74,21 @@ step after deployment and dbt have created the relations in production.
 
 ## Notes
 
+- Dependencies checked on 2026-07-25: `task-0013` and `task-0014` are both at
+  `review`.
+- Updated implemented-state docs:
+  - `README.md` now says Felts is implemented through Phase 12 and calls out the
+    mart-first schema-qualified MCP allowlist.
+  - `docs/project_specs.md` now says Felts is implemented through Phase 12, updates
+    `Last Updated` to `2026-07-25`, and records the mart-first MCP access surface
+    plus `scripts/update-prod-data-access.sh` as the production grant
+    reconciliation step.
+- Verification on 2026-07-25:
+  - `./.venv/bin/ruff check .` -> `All checks passed!`
+  - `./.venv/bin/ruff format tests/unit/test_prod_data_mcp.py` -> `1 file reformatted`
+  - `./.venv/bin/ruff format --check .` -> `103 files already formatted`
+  - `./.venv/bin/python -m mypy` -> `Success: no issues found in 91 source files`
+  - `./.venv/bin/pytest tests/unit` -> `112 passed in 1.40s`
+  - `./.venv/bin/pytest tests/unit/test_prod_data_mcp.py` -> `30 passed in 0.21s`
+  - `bash -n scripts/update-prod-data-access.sh` -> passed with no output
+- No production reconciliation command was run.
