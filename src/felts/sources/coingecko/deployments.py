@@ -39,6 +39,7 @@ COINGECKO_ENTITY_SCHEDULES: dict[CoinGeckoEntity, str] = {
     "asset_platforms_list": "15 0 * * *",
     "global": "0 * * * *",
     "global_defi": "15 * * * *",
+    "coins_ohlc": "0 3 * * *",
 }
 
 

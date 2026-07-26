@@ -38,3 +38,14 @@ class CoinsMarketsPayload(CoinGeckoModel):
     name: str
     current_price: float | None = None
     last_updated: datetime | None = None
+
+
+class CoinsOhlcPayload(CoinGeckoModel):
+    coin_id: str
+    vs_currency: str
+    days: int
+    timestamp_ms: int
+    open: float
+    high: float
+    low: float
+    close: float

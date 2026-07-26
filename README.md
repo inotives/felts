@@ -4,9 +4,10 @@ Felts stands for **Financial ELT Stacks**. It extracts financial data from APIs
 and CSV files, preserves raw evidence in Postgres, transforms it with dbt, and
 orchestrates operational runs with Prefect.
 
-Implemented through Phase 12:
+Implemented through Phase 13:
 
 - CoinGecko REST ingestion.
+- Scheduled CoinGecko OHLC candle capture for mapped internal crypto assets.
 - Alpha Vantage daily time-series ingestion.
 - YAML-driven OHLCV and FRED CSV imports.
 - Agent-pipe SQLite raw imports.
@@ -41,8 +42,11 @@ Examples:
 
 ```text
 coingecko.raw_coins_list
+coingecko.raw_coins_ohlc
 coingecko.stg_coingecko__coins_list
+coingecko.stg_coingecko__coins_ohlc
 coingecko.mart_coingecko__coins
+coingecko.mart_coingecko__coin_ohlc_candles
 
 csv_import.raw_fred_series
 alphavantage.raw_time_series_daily
@@ -108,6 +112,7 @@ Supported entities:
 - `global`
 - `global_defi`
 - `coins_markets`
+- `coins_ohlc`
 
 Run all entities:
 
@@ -168,8 +173,8 @@ make dbt-test
 
 Implemented transforms include:
 
-- CoinGecko staging models for all five entities.
-- CoinGecko coins, asset-platform, market-snapshot, global-market, and global-DeFi marts.
+- CoinGecko staging models for all six entities, including OHLC candles.
+- CoinGecko coins, asset-platform, OHLC candle, market-snapshot, global-market, and global-DeFi marts.
 - Alpha Vantage daily-price marts.
 - OHLCV and FRED CSV staging models.
 - OHLCV and FRED CSV marts.

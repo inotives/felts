@@ -22,6 +22,7 @@ from felts.sources.coingecko.schemas import (
     AssetPlatformsListPayload,
     CoinsListPayload,
     CoinsMarketsPayload,
+    CoinsOhlcPayload,
     GlobalDefiPayload,
     GlobalPayload,
 )
@@ -37,6 +38,7 @@ def build_coingecko_schema_registry() -> SchemaRegistry:
         "global": GlobalPayload,
         "global_defi": GlobalDefiPayload,
         "coins_markets": CoinsMarketsPayload,
+        "coins_ohlc": CoinsOhlcPayload,
     }
     for entity, model in registrations.items():
         registry.register(

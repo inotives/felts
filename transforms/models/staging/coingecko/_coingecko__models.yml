@@ -74,6 +74,38 @@ models:
         tests:
           - not_null
 
+  - name: stg_coingecko__coins_ohlc
+    description: Deduplicated CoinGecko OHLC candles by coin, quote currency, and candle close time.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - coin_id
+              - vs_currency
+              - observed_at
+    columns:
+      - name: coin_id
+        tests:
+          - not_null
+      - name: vs_currency
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+      - name: open
+        tests:
+          - not_null
+      - name: high
+        tests:
+          - not_null
+      - name: low
+        tests:
+          - not_null
+      - name: close
+        tests:
+          - not_null
+
   - name: mart_coingecko__coins
     description: Latest known CoinGecko coin identity reference table.
     columns:
@@ -135,5 +167,37 @@ models:
         tests:
           - not_null
       - name: extracted_at
+        tests:
+          - not_null
+
+  - name: mart_coingecko__coin_ohlc_candles
+    description: Provider-shaped CoinGecko OHLC candles at one row per coin, quote currency, and candle close time.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - coin_id
+              - vs_currency
+              - observed_at
+    columns:
+      - name: coin_id
+        tests:
+          - not_null
+      - name: vs_currency
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+      - name: open
+        tests:
+          - not_null
+      - name: high
+        tests:
+          - not_null
+      - name: low
+        tests:
+          - not_null
+      - name: close
         tests:
           - not_null

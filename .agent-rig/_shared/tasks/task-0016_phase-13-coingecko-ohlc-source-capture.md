@@ -2,15 +2,17 @@
 id: task-0016
 title: "Phase 13: CoinGecko OHLC source capture"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-25
-updated_on: 2026-07-25
+updated_on: 2026-07-26
 priority: normal
 parent: ""
 depends_on: []
 ---
+
+
 
 # Task
 
@@ -86,3 +88,30 @@ capture in this task.
 - [ ] Focused verification results are recorded in `## Notes`.
 
 ## Notes
+
+- Added `coins_ohlc` to the CoinGecko source constants, selector map, supported
+  entities, daily schedules, and event selector mapping.
+- Added seed-backed default CoinGecko ID loading in
+  `src/felts/sources/coingecko/extractor.py` from
+  `transforms/seeds/felts/asset_provider_mappings.csv`, filtered to
+  `provider_source=coingecko` and de-duplicated by `provider_asset_id`.
+- Added `/coins/{coin_id}/ohlc` extraction with:
+  - `vs_currency` from the existing CoinGecko market currency setting
+  - `days=90`
+  - no `interval` parameter
+  - raw object payload fields `coin_id`, `vs_currency`, `days`, `timestamp_ms`,
+    `open`, `high`, `low`, and `close`
+  - `observed_at` derived from `timestamp_ms`
+  - `source_record_id` set to `coin_id|vs_currency|timestamp_ms`
+- Added raw validation schema coverage for `coins_ohlc`.
+- Added focused unit coverage for mapped ID defaults, duplicate-safe identity,
+  malformed OHLC responses, runner support, daily deployment schedule, and event
+  selector wiring.
+- Verification on 2026-07-26:
+  - `./.venv/bin/pytest tests/unit/sources/coingecko/test_extractor.py -q` -> `11 passed in 0.14s`
+  - `./.venv/bin/pytest tests/unit/sources/coingecko/test_runner.py -q` -> `6 passed in 0.14s`
+  - `./.venv/bin/pytest tests/unit/sources/coingecko/test_deployments.py -q` -> `2 passed in 1.15s`
+  - `./.venv/bin/pytest tests/unit/sources/coingecko/test_events.py -q` -> `4 passed in 0.71s`
+  - `./.venv/bin/ruff check src/felts/sources/coingecko tests/unit/sources/coingecko` -> `All checks passed!`
+  - `./.venv/bin/ruff format --check src/felts/sources/coingecko tests/unit/sources/coingecko` -> `15 files already formatted`
+  - `./.venv/bin/python -m mypy src/felts/sources/coingecko` -> `Success: no issues found in 10 source files`
