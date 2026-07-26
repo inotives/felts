@@ -24,6 +24,7 @@ def test_load_allowed_views_reads_committed_allowlist() -> None:
     assert load_allowed_views() == (
         "alphavantage.mart_alphavantage__daily_prices",
         "coingecko.mart_coingecko__asset_platforms",
+        "coingecko.mart_coingecko__coin_ohlc_candles",
         "coingecko.mart_coingecko__coin_market_snapshots",
         "coingecko.mart_coingecko__coins",
         "coingecko.mart_coingecko__global_defi_snapshots",
@@ -53,6 +54,10 @@ def test_validate_query_allows_unbounded_aggregate() -> None:
 @pytest.mark.parametrize(
     ("sql", "normalized"),
     [
+        (
+            "select coin_id, open, close from coingecko.mart_coingecko__coin_ohlc_candles limit 5",
+            "SELECT coin_id, open, close FROM coingecko.mart_coingecko__coin_ohlc_candles LIMIT 5",
+        ),
         (
             "select traded_at, close from alphavantage.mart_alphavantage__daily_prices limit 5",
             "SELECT traded_at, close FROM alphavantage.mart_alphavantage__daily_prices LIMIT 5",
@@ -110,6 +115,11 @@ def test_validate_query_rejects_removed_staging_relations(sql: str) -> None:
     ("view_name", "expected_schema", "expected_table"),
     [
         ("coingecko.mart_coingecko__coins", "coingecko", "mart_coingecko__coins"),
+        (
+            "coingecko.mart_coingecko__coin_ohlc_candles",
+            "coingecko",
+            "mart_coingecko__coin_ohlc_candles",
+        ),
         (
             "alphavantage.mart_alphavantage__daily_prices",
             "alphavantage",

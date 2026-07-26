@@ -1,8 +1,8 @@
 # Felts Project Specifications
 
 **Version:** 2.0.0
-**Last Updated:** 2026-07-25
-**Status:** Implemented through Phase 12
+**Last Updated:** 2026-07-26
+**Status:** Implemented through Phase 13
 
 Felts is a financial ELT system that extracts source data, preserves raw evidence in
 Postgres, transforms it with dbt, and orchestrates operational runs with Prefect.
@@ -18,6 +18,7 @@ Phases 01 through 10 delivered:
 - Shared extraction, validation, writing, loading, and source-run contracts.
 - Postgres and TimescaleDB raw landing with deterministic idempotency.
 - A complete CoinGecko REST ingestion path.
+- Scheduled CoinGecko OHLC candle capture for mapped internal crypto assets.
 - Alpha Vantage daily time-series ingestion.
 - dbt source, staging, and mart models.
 - Prefect source deployments, Raw Completion Events, and scoped dbt transforms.
@@ -193,6 +194,7 @@ CoinGecko is the implemented REST source and supports:
 | `global` | `/global` | Hourly at minute 00 |
 | `global_defi` | `/global/decentralized_finance_defi` | Hourly at minute 15 |
 | `coins_markets` | `/coins/markets` | Manual |
+| `coins_ohlc` | `/coins/{coin_id}/ohlc` | Daily at 03:00 UTC |
 
 The shared REST client provides:
 
@@ -254,11 +256,13 @@ Implemented CoinGecko staging models:
 - `stg_coingecko__global`
 - `stg_coingecko__global_defi`
 - `stg_coingecko__coins_markets`
+- `stg_coingecko__coins_ohlc`
 
 Implemented CoinGecko marts:
 
 - `mart_coingecko__coins`
 - `mart_coingecko__asset_platforms`
+- `mart_coingecko__coin_ohlc_candles`
 - `mart_coingecko__coin_market_snapshots`
 - `mart_coingecko__global_market_snapshots`
 - `mart_coingecko__global_defi_snapshots`

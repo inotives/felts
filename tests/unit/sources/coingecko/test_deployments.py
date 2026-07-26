@@ -10,13 +10,16 @@ def test_build_source_deployment_specs_registers_all_entities() -> None:
         "global",
         "global_defi",
         "coins_markets",
+        "coins_ohlc",
     ]
     assert specs[0].name == "coingecko-coins-list-source"
-    assert specs[-1].name == "coingecko-coins-markets-source"
+    assert specs[-1].name == "coingecko-coins-ohlc-source"
 
 
 def test_coins_markets_deployment_has_no_schedule() -> None:
     specs = {spec.entity: spec for spec in build_source_deployment_specs()}
 
     assert specs["coins_markets"].schedules is None
+    assert specs["coins_ohlc"].schedules is not None
+    assert specs["coins_ohlc"].schedules[0].cron == "0 3 * * *"
     assert specs["global"].schedules is not None

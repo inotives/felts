@@ -28,6 +28,12 @@ def test_raw_completion_event_payload_includes_transform_selector() -> None:
     }
 
 
+def test_raw_completion_event_payload_maps_coins_ohlc_selector() -> None:
+    summary = _entity_summary(entity="coins_ohlc", inserted_count=2)
+
+    assert raw_completion_payload(summary)["dbt_selector"] == "stg_coingecko__coins_ohlc+"
+
+
 def test_raw_completion_event_gate_requires_inserted_rows() -> None:
     assert should_emit_raw_completion_event(_entity_summary(inserted_count=1)) is True
     assert should_emit_raw_completion_event(_entity_summary(inserted_count=0)) is False

@@ -9,6 +9,7 @@ CoinGeckoEntity = Literal[
     "global",
     "global_defi",
     "coins_markets",
+    "coins_ohlc",
 ]
 
 COINGECKO_SOURCE = "coingecko"
@@ -18,6 +19,7 @@ SUPPORTED_ENTITIES: tuple[CoinGeckoEntity, ...] = (
     "global",
     "global_defi",
     "coins_markets",
+    "coins_ohlc",
 )
 
 DBT_SELECTORS: dict[CoinGeckoEntity, str] = {
@@ -26,6 +28,7 @@ DBT_SELECTORS: dict[CoinGeckoEntity, str] = {
     "global": "stg_coingecko__global+",
     "global_defi": "stg_coingecko__global_defi+",
     "coins_markets": "stg_coingecko__coins_markets+",
+    "coins_ohlc": "stg_coingecko__coins_ohlc+",
 }
 
 SCHEDULED_ENTITIES: tuple[CoinGeckoEntity, ...] = (
@@ -33,6 +36,7 @@ SCHEDULED_ENTITIES: tuple[CoinGeckoEntity, ...] = (
     "asset_platforms_list",
     "global",
     "global_defi",
+    "coins_ohlc",
 )
 
 COINGECKO_SOURCE_DEPLOYMENT_PREFIX = "coingecko"
@@ -56,4 +60,5 @@ ENDPOINTS: dict[CoinGeckoEntity, CoinGeckoEndpoint] = {
         "global_defi", "/global/decentralized_finance_defi", "data_object", None
     ),
     "coins_markets": CoinGeckoEndpoint("coins_markets", "/coins/markets", "list", "id"),
+    "coins_ohlc": CoinGeckoEndpoint("coins_ohlc", "/coins/{coin_id}/ohlc", "list", None),
 }

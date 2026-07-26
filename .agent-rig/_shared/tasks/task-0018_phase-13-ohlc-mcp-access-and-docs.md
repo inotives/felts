@@ -2,16 +2,18 @@
 id: task-0018
 title: "Phase 13: OHLC MCP access and docs"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-25
-updated_on: 2026-07-25
+updated_on: 2026-07-26
 priority: normal
 parent: ""
 depends_on:
   - task-0017
 ---
+
+
 
 # Task
 
@@ -61,3 +63,19 @@ policy unless a focused test exposes a current bug.
 - [ ] Focused verification results are recorded in `## Notes`.
 
 ## Notes
+
+- Added `coingecko.mart_coingecko__coin_ohlc_candles` to the committed MCP
+  allowlist in `settings/felts-prod-data-views.txt`.
+- Kept the allowlist schema-qualified only. No raw or staging OHLC relations were
+  added.
+- Updated `tests/unit/test_prod_data_mcp.py` to:
+  - assert the committed allowlist includes the OHLC mart
+  - accept a bounded select from `coingecko.mart_coingecko__coin_ohlc_candles`
+  - cover schema-qualified `describe_allowed_view` lookup for the OHLC mart
+- Updated `docs/mcp/felts-prod-data.md` so the OHLC mart appears in the preferred
+  mart-first MCP surface.
+- Verification on Sunday, July 26, 2026:
+  - `./.venv/bin/pytest tests/unit/test_prod_data_mcp.py -q` -> `32 passed in 0.20s`
+  - `./.venv/bin/ruff check tests/unit/test_prod_data_mcp.py` -> `All checks passed!`
+  - `./.venv/bin/ruff format --check tests/unit/test_prod_data_mcp.py` -> `1 file already formatted`
+- No production reconciliation command was run.

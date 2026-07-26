@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
 import pytest
@@ -95,6 +96,104 @@ def test_extracts_coins_markets_with_pagination_and_observed_at(
 
     assert [record.source_record_id for record in records] == ["bitcoin", "ethereum", "solana"]
     assert records[0].observed_at == datetime(2026, 1, 1, tzinfo=UTC)
+
+
+def test_extracts_coins_ohlc_from_seed_mappings_with_duplicate_safe_identity(
+    httpx_mock: HTTPXMock,
+    tmp_path: Path,
+) -> None:
+    mappings_path = tmp_path / "asset_provider_mappings.csv"
+    mappings_path.write_text(
+        "\n".join(
+            [
+                "internal_asset_id,provider_source,provider_asset_id",
+                "bitcoin,coingecko,bitcoin",
+                "wrapped-bitcoin,coingecko,bitcoin",
+                "ethereum,coingecko,ethereum",
+                "apple,alphavantage,AAPL",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    httpx_mock.add_response(
+        url="https://api.coingecko.test/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=90",
+        json=[[1735689600000, 100.0, 110.0, 90.0, 105.0]],
+    )
+    httpx_mock.add_response(
+        url="https://api.coingecko.test/api/v3/coins/ethereum/ohlc?vs_currency=usd&days=90",
+        json=[[1735776000000, 10.0, 11.0, 9.0, 10.5]],
+    )
+
+    extractor = CoinGeckoExtractor(
+        client=_client(),
+        asset_provider_mappings_path=mappings_path,
+    )
+
+    records = extractor.extract_coins_ohlc()
+
+    assert [record.payload["coin_id"] for record in records] == ["bitcoin", "ethereum"]
+    assert [record.source_record_id for record in records] == [
+        "bitcoin|usd|1735689600000",
+        "ethereum|usd|1735776000000",
+    ]
+    assert records[0].payload == {
+        "coin_id": "bitcoin",
+        "vs_currency": "usd",
+        "days": 90,
+        "timestamp_ms": 1735689600000,
+        "open": 100.0,
+        "high": 110.0,
+        "low": 90.0,
+        "close": 105.0,
+    }
+    assert records[0].observed_at == datetime(2025, 1, 1, tzinfo=UTC)
+    requests = httpx_mock.get_requests()
+    assert [str(request.url.path) for request in requests] == [
+        "/api/v3/coins/bitcoin/ohlc",
+        "/api/v3/coins/ethereum/ohlc",
+    ]
+    assert requests[0].url.params["vs_currency"] == "usd"
+    assert requests[0].url.params["days"] == "90"
+    assert "interval" not in requests[0].url.params
+
+
+@pytest.mark.parametrize(
+    "response_json",
+    [
+        {"unexpected": []},
+        [[1735689600000, 100.0, 110.0, 90.0]],
+        [[1735689600000, 100.0, 110.0, 90.0, "bad"]],
+    ],
+)
+def test_malformed_coins_ohlc_shape_fails(
+    httpx_mock: HTTPXMock,
+    tmp_path: Path,
+    response_json: object,
+) -> None:
+    mappings_path = tmp_path / "asset_provider_mappings.csv"
+    mappings_path.write_text(
+        "\n".join(
+            [
+                "internal_asset_id,provider_source,provider_asset_id",
+                "bitcoin,coingecko,bitcoin",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    httpx_mock.add_response(
+        url="https://api.coingecko.test/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=90",
+        json=response_json,
+    )
+
+    extractor = CoinGeckoExtractor(
+        client=_client(),
+        asset_provider_mappings_path=mappings_path,
+    )
+
+    with pytest.raises(ExtractionError, match="coins_ohlc"):
+        extractor.extract_coins_ohlc()
 
 
 def test_rest_client_retries_retryable_status(httpx_mock: HTTPXMock) -> None:

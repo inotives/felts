@@ -1,9 +1,12 @@
 """CoinGecko REST extractor."""
 
+import csv
 from collections.abc import Iterable
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
+from felts.config.settings import REPO_ROOT
 from felts.core.exceptions import ExtractionError
 from felts.core.extractors import BaseExtractor
 from felts.core.extractors.rest import RestClient
@@ -14,9 +17,13 @@ from felts.sources.coingecko.constants import (
     CoinGeckoEntity,
 )
 
+DEFAULT_ASSET_PROVIDER_MAPPINGS_PATH = (
+    REPO_ROOT / "transforms" / "seeds" / "felts" / "asset_provider_mappings.csv"
+)
+
 
 class CoinGeckoExtractor(BaseExtractor):
-    """Extract Phase 02 CoinGecko entities into source-shaped records."""
+    """Extract CoinGecko entities into source-shaped records."""
 
     def __init__(
         self,
@@ -25,6 +32,9 @@ class CoinGeckoExtractor(BaseExtractor):
         markets_vs_currency: str = "usd",
         markets_per_page: int = 250,
         markets_max_pages: int = 1,
+        ohlc_days: int = 90,
+        ohlc_coin_ids: tuple[str, ...] | None = None,
+        asset_provider_mappings_path: Path = DEFAULT_ASSET_PROVIDER_MAPPINGS_PATH,
     ) -> None:
         if not markets_vs_currency:
             msg = "markets_vs_currency is required"
@@ -35,11 +45,20 @@ class CoinGeckoExtractor(BaseExtractor):
         if markets_max_pages < 1:
             msg = "markets_max_pages must be greater than zero"
             raise ExtractionError(msg)
+        if ohlc_days < 1:
+            msg = "ohlc_days must be greater than zero"
+            raise ExtractionError(msg)
 
         self.client = client
         self.markets_vs_currency = markets_vs_currency
         self.markets_per_page = markets_per_page
         self.markets_max_pages = markets_max_pages
+        self.ohlc_days = ohlc_days
+        self.ohlc_coin_ids = (
+            tuple(ohlc_coin_ids)
+            if ohlc_coin_ids is not None
+            else load_default_coingecko_coin_ids(asset_provider_mappings_path)
+        )
 
     def extract(self) -> Iterable[ExtractedRecord]:
         for entity in ENDPOINTS:
@@ -57,6 +76,8 @@ class CoinGeckoExtractor(BaseExtractor):
                 return self.extract_global_defi()
             case "coins_markets":
                 return self.extract_coins_markets()
+            case "coins_ohlc":
+                return self.extract_coins_ohlc()
 
     def extract_coins_list(self) -> list[ExtractedRecord]:
         payloads = self._get_list("coins_list")
@@ -111,6 +132,23 @@ class CoinGeckoExtractor(BaseExtractor):
                 break
         return records
 
+    def extract_coins_ohlc(self) -> list[ExtractedRecord]:
+        records: list[ExtractedRecord] = []
+        for coin_id in self.ohlc_coin_ids:
+            data = self.client.get_json(
+                ENDPOINTS["coins_ohlc"].path.format(coin_id=coin_id),
+                params={
+                    "vs_currency": self.markets_vs_currency,
+                    "days": self.ohlc_days,
+                },
+            )
+            if not isinstance(data, list):
+                msg = "CoinGecko coins_ohlc response must be a list"
+                raise ExtractionError(msg)
+            for row in data:
+                records.append(self._ohlc_record(coin_id=coin_id, row=row))
+        return records
+
     def _get_list(self, entity: CoinGeckoEntity) -> list[dict[str, Any]]:
         endpoint = ENDPOINTS[entity]
         data = self.client.get_json(endpoint.path)
@@ -153,6 +191,44 @@ class CoinGeckoExtractor(BaseExtractor):
             observed_at=_parse_datetime(last_updated) if isinstance(last_updated, str) else None,
         )
 
+    def _ohlc_record(self, *, coin_id: str, row: Any) -> ExtractedRecord:
+        timestamp_ms, open_price, high_price, low_price, close_price = _parse_ohlc_row(row)
+        payload = {
+            "coin_id": coin_id,
+            "vs_currency": self.markets_vs_currency,
+            "days": self.ohlc_days,
+            "timestamp_ms": timestamp_ms,
+            "open": open_price,
+            "high": high_price,
+            "low": low_price,
+            "close": close_price,
+        }
+        return ExtractedRecord(
+            source=COINGECKO_SOURCE,
+            entity="coins_ohlc",
+            payload=payload,
+            observed_at=datetime.fromtimestamp(timestamp_ms / 1000, tz=UTC),
+            source_record_id=f"{coin_id}|{self.markets_vs_currency}|{timestamp_ms}",
+        )
+
+
+def load_default_coingecko_coin_ids(
+    path: Path = DEFAULT_ASSET_PROVIDER_MAPPINGS_PATH,
+) -> tuple[str, ...]:
+    seen: set[str] = set()
+    coin_ids: list[str] = []
+    with path.open(encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            if row.get("provider_source") != "coingecko":
+                continue
+            coin_id = (row.get("provider_asset_id") or "").strip()
+            if not coin_id or coin_id in seen:
+                continue
+            seen.add(coin_id)
+            coin_ids.append(coin_id)
+    return tuple(coin_ids)
+
 
 def _ensure_object(*, entity: str, payload: Any) -> dict[str, Any]:
     if isinstance(payload, dict):
@@ -166,3 +242,30 @@ def _parse_datetime(value: str) -> datetime:
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         return parsed.replace(tzinfo=UTC)
     return parsed
+
+
+def _parse_ohlc_row(row: Any) -> tuple[int, float, float, float, float]:
+    if not isinstance(row, list) or len(row) != 5:
+        msg = "CoinGecko coins_ohlc row must be a five-item array"
+        raise ExtractionError(msg)
+
+    timestamp_ms = _int_value(row[0], field_name="timestamp_ms")
+    open_price = _float_value(row[1], field_name="open")
+    high_price = _float_value(row[2], field_name="high")
+    low_price = _float_value(row[3], field_name="low")
+    close_price = _float_value(row[4], field_name="close")
+    return (timestamp_ms, open_price, high_price, low_price, close_price)
+
+
+def _int_value(value: Any, *, field_name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        msg = f"CoinGecko coins_ohlc {field_name} must be numeric"
+        raise ExtractionError(msg)
+    return int(value)
+
+
+def _float_value(value: Any, *, field_name: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        msg = f"CoinGecko coins_ohlc {field_name} must be numeric"
+        raise ExtractionError(msg)
+    return float(value)

@@ -23,7 +23,7 @@ def register_cli(subparsers: Any) -> None:
         nargs="+",
         choices=SUPPORTED_ENTITIES,
         default=None,
-        help="CoinGecko entities to run; defaults to all Phase 02 entities.",
+        help="CoinGecko entities to run; defaults to all supported entities.",
     )
     run.set_defaults(handler=_run)
 

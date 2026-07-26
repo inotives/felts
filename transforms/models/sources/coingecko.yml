@@ -15,3 +15,5 @@ sources:
         description: Raw CoinGecko global DeFi snapshots.
       - name: raw_coins_markets
         description: Raw CoinGecko market snapshot records.
+      - name: raw_coins_ohlc
+        description: Raw CoinGecko OHLC candle records for selected mapped coins.

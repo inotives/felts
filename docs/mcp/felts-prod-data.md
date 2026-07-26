@@ -13,6 +13,7 @@ Preferred access is the committed mart surface:
 
 - `coingecko.mart_coingecko__asset_platforms`
 - `coingecko.mart_coingecko__coins`
+- `coingecko.mart_coingecko__coin_ohlc_candles`
 - `coingecko.mart_coingecko__coin_market_snapshots`
 - `coingecko.mart_coingecko__global_market_snapshots`
 - `coingecko.mart_coingecko__global_defi_snapshots`
