@@ -17,7 +17,7 @@ This breaks the Felts project specification into implementation phases ordered b
 10. [Phase 10 - Agent-Pipe SQLite Raw Ingestion](./_archived/phase_10_agent_pipe_sqlite_ingestion.md)
 11. [Phase 11 - Analytical Marts and Felts Internal Assets](./_archived/phase_11_analytical_marts_and_internal_assets.md)
 12. [Phase 12 - Analytical Access Refresh](./_archived/phase_12_analytical_access_refresh.md)
-13. [Phase 13 - CoinGecko OHLC Capture](./phases/phase_13_coingecko_ohlc_capture.md)
+13. [Phase 13 - CoinGecko OHLC Capture](./_archived/phase_13_coingecko_ohlc_capture.md)
 
 ## Dependency Shape
 
