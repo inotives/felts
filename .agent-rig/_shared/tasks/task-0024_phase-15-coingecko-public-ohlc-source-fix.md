@@ -2,7 +2,7 @@
 id: task-0024
 title: "Phase 15: CoinGecko public OHLC source fix"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-27
@@ -11,6 +11,9 @@ priority: normal
 parent: ""
 depends_on: []
 ---
+
+
+
 
 # Task
 
@@ -64,3 +67,22 @@ Do not delete old raw rows. Raw remains append-only.
 - [ ] Focused verification results are recorded in `## Notes`.
 
 ## Notes
+
+- Updated `src/felts/sources/coingecko/extractor.py` so `coins_ohlc` now uses
+  `days=30` with no request `interval`, while `coins_market_chart` keeps its
+  separate `days=90&interval=daily` request contract.
+- OHLC raw payload construction now stores `interval = 4h` while keeping
+  `source_record_id = coin_id|vs_currency|timestamp_ms`.
+- Updated focused OHLC extractor and runner tests to cover the corrected public
+  API request shape and payload fields.
+- Verification:
+  - `./.venv/bin/pytest tests/unit/sources/coingecko/test_extractor.py tests/unit/sources/coingecko/test_runner.py tests/unit/sources/coingecko/test_deployments.py tests/unit/sources/coingecko/test_events.py -q`
+  - `31 passed in 1.26s`
+- Reviewer verification on Monday, July 27, 2026:
+  - `./.venv/bin/pytest tests/unit/sources/coingecko/test_extractor.py tests/unit/sources/coingecko/test_runner.py tests/unit/sources/coingecko/test_deployments.py tests/unit/sources/coingecko/test_events.py -q`
+  - `31 passed in 1.17s`
+  - `env UV_CACHE_DIR=/tmp/felts-uv-cache ./.venv/bin/felts coingecko run --entities coins_ohlc`
+  - `source=coingecko entity=coins_ohlc extracted=540 inserted=540 skipped_duplicate=0 invalid=0 failed=0`
+  - Raw warehouse spot-check after the live run confirmed Phase 15 rows persist
+    with `days=30`, `interval=4h`, and unchanged
+    `source_record_id=coin_id|usd|timestamp_ms` shape.

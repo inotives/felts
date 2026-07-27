@@ -52,8 +52,8 @@ def test_coingecko_schema_registry_registers_coins_ohlc() -> None:
         {
             "coin_id": "bitcoin",
             "vs_currency": "usd",
-            "days": 90,
-            "interval": "daily",
+            "days": 30,
+            "interval": "4h",
             "timestamp_ms": 1735689600000,
             "open": 100.0,
             "high": 110.0,
@@ -138,10 +138,7 @@ def test_run_coingecko_source_supports_coins_ohlc(httpx_mock: HTTPXMock, tmp_pat
         encoding="utf-8",
     )
     httpx_mock.add_response(
-        url=(
-            "https://api.coingecko.test/api/v3/coins/bitcoin/ohlc"
-            "?vs_currency=usd&days=90&interval=daily"
-        ),
+        url=("https://api.coingecko.test/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=30"),
         json=[[1735689600000, 100.0, 110.0, 90.0, 105.0]],
     )
     memory_loader = MemoryLoader()

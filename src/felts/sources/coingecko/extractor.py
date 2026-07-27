@@ -32,7 +32,8 @@ class CoinGeckoExtractor(BaseExtractor):
         markets_vs_currency: str = "usd",
         markets_per_page: int = 250,
         markets_max_pages: int = 1,
-        ohlc_days: int = 90,
+        ohlc_days: int = 30,
+        market_chart_days: int = 90,
         ohlc_coin_ids: tuple[str, ...] | None = None,
         asset_provider_mappings_path: Path = DEFAULT_ASSET_PROVIDER_MAPPINGS_PATH,
     ) -> None:
@@ -48,12 +49,16 @@ class CoinGeckoExtractor(BaseExtractor):
         if ohlc_days < 1:
             msg = "ohlc_days must be greater than zero"
             raise ExtractionError(msg)
+        if market_chart_days < 1:
+            msg = "market_chart_days must be greater than zero"
+            raise ExtractionError(msg)
 
         self.client = client
         self.markets_vs_currency = markets_vs_currency
         self.markets_per_page = markets_per_page
         self.markets_max_pages = markets_max_pages
         self.ohlc_days = ohlc_days
+        self.market_chart_days = market_chart_days
         self.ohlc_coin_ids = (
             tuple(ohlc_coin_ids)
             if ohlc_coin_ids is not None
@@ -142,7 +147,6 @@ class CoinGeckoExtractor(BaseExtractor):
                 params={
                     "vs_currency": self.markets_vs_currency,
                     "days": self.ohlc_days,
-                    "interval": "daily",
                 },
             )
             if not isinstance(data, list):
@@ -159,7 +163,7 @@ class CoinGeckoExtractor(BaseExtractor):
                 ENDPOINTS["coins_market_chart"].path.format(coin_id=coin_id),
                 params={
                     "vs_currency": self.markets_vs_currency,
-                    "days": self.ohlc_days,
+                    "days": self.market_chart_days,
                     "interval": "daily",
                 },
             )
@@ -216,7 +220,7 @@ class CoinGeckoExtractor(BaseExtractor):
             "coin_id": coin_id,
             "vs_currency": self.markets_vs_currency,
             "days": self.ohlc_days,
-            "interval": "daily",
+            "interval": "4h",
             "timestamp_ms": timestamp_ms,
             "open": open_price,
             "high": high_price,
@@ -238,7 +242,7 @@ class CoinGeckoExtractor(BaseExtractor):
         payload = {
             "coin_id": coin_id,
             "vs_currency": self.markets_vs_currency,
-            "days": self.ohlc_days,
+            "days": self.market_chart_days,
             "interval": "daily",
             "timestamp_ms": timestamp_ms,
             "price": price,

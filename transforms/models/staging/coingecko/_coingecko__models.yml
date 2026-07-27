@@ -75,7 +75,7 @@ models:
           - not_null
 
   - name: stg_coingecko__coins_ohlc
-    description: Deduplicated CoinGecko OHLC candles by coin, quote currency, and candle close time.
+    description: Deduplicated CoinGecko provider OHLC candles by coin, quote currency, and candle close time.
     tests:
       - unique_combination_of_columns:
           arguments:
@@ -93,6 +93,54 @@ models:
       - name: interval
         tests:
           - not_null
+      - name: observed_at
+        tests:
+          - not_null
+      - name: open
+        tests:
+          - not_null
+      - name: high
+        tests:
+          - not_null
+      - name: low
+        tests:
+          - not_null
+      - name: close
+        tests:
+          - not_null
+
+  - name: int_coingecko__coin_ohlc_daily_rollups
+    description: Daily UTC CoinGecko OHLC rollups derived from corrected 30-day public-api 4-hour candles only.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - coin_id
+              - vs_currency
+              - observed_at
+      - expression_is_true:
+          arguments:
+            expression: "observed_at = date_trunc('day', observed_at at time zone 'UTC') at time zone 'UTC'"
+    columns:
+      - name: coin_id
+        tests:
+          - not_null
+      - name: vs_currency
+        tests:
+          - not_null
+      - name: days
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [30]
+                quote: false
+      - name: interval
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['daily']
       - name: observed_at
         tests:
           - not_null
@@ -207,7 +255,7 @@ models:
           - not_null
 
   - name: mart_coingecko__coin_ohlc_candles
-    description: Provider-shaped CoinGecko OHLC candles at one row per coin, quote currency, and candle close time.
+    description: Daily UTC CoinGecko OHLC rollup candles at one row per coin, quote currency, and day.
     tests:
       - unique_combination_of_columns:
           arguments:
@@ -215,6 +263,9 @@ models:
               - coin_id
               - vs_currency
               - observed_at
+      - expression_is_true:
+          arguments:
+            expression: "observed_at = date_trunc('day', observed_at at time zone 'UTC') at time zone 'UTC'"
     columns:
       - name: coin_id
         tests:
@@ -225,6 +276,9 @@ models:
       - name: interval
         tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ['daily']
       - name: observed_at
         tests:
           - not_null
@@ -283,6 +337,9 @@ models:
               - coin_id
               - vs_currency
               - observed_at
+      - expression_is_true:
+          arguments:
+            expression: "observed_at = date_trunc('day', observed_at at time zone 'UTC') at time zone 'UTC'"
     columns:
       - name: coin_id
         tests:

@@ -2,7 +2,7 @@
 id: task-0026
 title: "Phase 15: MCP and docs alignment"
 type: task
-status: blocked
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-27
@@ -12,6 +12,9 @@ parent: ""
 depends_on:
   - task-0025
 ---
+
+
+
 
 # Task
 
@@ -68,3 +71,33 @@ This task should not expose intermediate models. Keep mart-first MCP access.
 - [ ] Focused verification results are recorded in `## Notes`.
 
 ## Notes
+
+- Confirmed `settings/felts-prod-data-views.txt` remains unchanged and still
+  allowlists only the committed mart surface, including
+  `coingecko.mart_coingecko__coin_ohlc_candles` and
+  `coingecko.mart_coingecko__coin_ohlcv_daily`.
+- Added focused MCP policy coverage in `tests/unit/test_prod_data_mcp.py` so
+  queries against `coingecko.int_coingecko__coin_ohlc_daily_rollups`,
+  `coingecko.raw_coins_ohlc`, and `coingecko.stg_coingecko__coins_ohlc` are
+  explicitly rejected as not allowlisted.
+- Updated `docs/mcp/felts-prod-data.md` to describe the OHLC mart as daily UTC
+  rollup output derived from public-compatible 30-day OHLC capture, and to note
+  that intermediate/raw/staging OHLC relations remain hidden from MCP.
+- Updated `README.md` and `docs/project_specs.md` to describe Phase 15 as the
+  implemented public OHLC fix: 30-day OHLC capture, provider 4-hour staging,
+  dbt-derived daily OHLC rollups, and OHLCV built from rollup OHLC plus
+  market-chart metrics.
+- No production reconciliation command was run.
+- Verification:
+  - `./.venv/bin/pytest tests/unit/test_prod_data_mcp.py -q`
+  - `40 passed in 0.32s`
+- Reviewer verification on Monday, July 27, 2026:
+  - `./.venv/bin/pytest tests/unit/test_prod_data_mcp.py -q`
+  - `40 passed in 0.31s`
+  - Allowlist sanity check confirmed:
+    - entry count: `14`
+    - required marts present:
+      `coingecko.mart_coingecko__coin_ohlc_candles`,
+      `coingecko.mart_coingecko__coin_ohlcv_daily`
+    - no allowlisted entries matched intermediate, staging, or raw OHLC
+      relations

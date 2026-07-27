@@ -2,7 +2,7 @@
 
 **Version:** 2.0.0
 **Last Updated:** 2026-07-27
-**Status:** Implemented through Phase 13
+**Status:** Implemented through Phase 15
 
 Felts is a financial ELT system that extracts source data, preserves raw evidence in
 Postgres, transforms it with dbt, and orchestrates operational runs with Prefect.
@@ -19,8 +19,10 @@ Phases 01 through 10 delivered:
 - Postgres and TimescaleDB raw landing with deterministic idempotency.
 - A complete CoinGecko REST ingestion path.
 - Scheduled CoinGecko OHLC candle capture for mapped internal crypto assets.
-- Phase 14 daily CoinGecko market-chart metrics, derived OHLCV marts, and
-  related MCP/dbt work are in progress pending a live OHLC ingest fix.
+- Public-compatible CoinGecko OHLC capture using 30-day requests with provider
+  4-hour candle staging.
+- dbt-derived daily CoinGecko OHLC rollups and daily OHLCV marts built from
+  rollup OHLC plus market-chart metrics.
 - Alpha Vantage daily time-series ingestion.
 - dbt source, staging, and mart models.
 - Prefect source deployments, Raw Completion Events, and scoped dbt transforms.
@@ -209,6 +211,14 @@ The shared REST client provides:
 The plain Python runner can process all or selected entities and returns a
 `SourceRunSummary`. The CLI and Prefect flows call the same runner.
 
+For the current CoinGecko market-data contract:
+
+- `coins_ohlc` calls `/coins/{coin_id}/ohlc` with `vs_currency` and `days=30`.
+- `coins_ohlc` does not send `interval`.
+- Raw `coins_ohlc` payloads store `interval = '4h'` to record the public API's
+  30-day auto-granularity provider candle width.
+- `coins_market_chart` remains on `days=90&interval=daily`.
+
 ## 7. CSV Import Source
 
 CSV imports are driven by `src/felts/sources/csv_import/contracts.yaml`. A contract
@@ -262,6 +272,10 @@ Implemented CoinGecko staging models:
 - `stg_coingecko__coins_ohlc`
 - `stg_coingecko__coins_market_chart`
 
+Implemented CoinGecko intermediate models:
+
+- `int_coingecko__coin_ohlc_daily_rollups`
+
 Implemented CoinGecko marts:
 
 - `mart_coingecko__coins`
@@ -299,6 +313,18 @@ Staging models:
 - Cast fields to declared analytical types.
 - Filter invalid raw rows.
 - Deduplicate using each model's declared grain and ordering rules.
+
+For CoinGecko OHLC specifically:
+
+- `stg_coingecko__coins_ohlc` remains provider-shaped at one row per 4-hour
+  candle close.
+- `int_coingecko__coin_ohlc_daily_rollups` filters to corrected `days = 30`
+  and `interval = '4h'` rows, then rolls them up to one UTC daily OHLC row per
+  `coin_id, vs_currency, observed_at`.
+- `mart_coingecko__coin_ohlc_candles` now serves those daily rollup candles.
+- `mart_coingecko__coin_ohlcv_daily` joins the daily OHLC rollup to
+  `stg_coingecko__coins_market_chart`, with volume still sourced from
+  market-chart metrics.
 
 dbt model tests enforce required fields and uniqueness where defined. Provider marts
 stay provider-native, while the `felts` schema adds curated internal asset identity
@@ -407,6 +433,10 @@ The implemented MCP access surface is the schema-qualified mart-first allowlist 
 `settings/felts-prod-data-views.txt`. Clients must query exact `schema.relation`
 names, and production grant reconciliation remains the rerunnable operator step in
 `scripts/update-prod-data-access.sh`.
+
+The allowlist still excludes intermediate, staging, and raw OHLC relations,
+including `coingecko.int_coingecko__coin_ohlc_daily_rollups`,
+`coingecko.stg_coingecko__coins_ohlc`, and `coingecko.raw_coins_ohlc`.
 
 ## 12. Current Boundaries
 

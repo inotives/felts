@@ -112,6 +112,9 @@ def test_validate_query_rejects_unsafe_sql(sql: str) -> None:
 @pytest.mark.parametrize(
     "sql",
     [
+        "select * from coingecko.int_coingecko__coin_ohlc_daily_rollups limit 5",
+        "select * from coingecko.raw_coins_ohlc limit 5",
+        "select * from coingecko.stg_coingecko__coins_ohlc limit 5",
         "select * from public.stg_alphavantage__time_series_daily limit 5",
         "select * from coingecko.stg_coingecko__asset_platforms_list limit 5",
         "select * from coingecko.stg_coingecko__coins_list limit 5",

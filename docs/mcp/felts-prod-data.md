@@ -26,6 +26,17 @@ Preferred access is the committed mart surface:
 - `felts.mart_felts__asset_platforms`
 - `felts.mart_felts__asset_provider_mappings`
 
+For Phase 15 CoinGecko semantics:
+
+- `coingecko.mart_coingecko__coin_ohlc_candles` exposes daily UTC OHLC rollup
+  candles, derived in dbt from public-API-compatible 30-day `coins_ohlc`
+  captures at provider 4-hour candle grain.
+- `coingecko.mart_coingecko__coin_ohlcv_daily` joins those daily OHLC rollups
+  to `coins_market_chart` daily market metrics for volume, market cap, and
+  price.
+- MCP does not expose `coingecko.int_coingecko__coin_ohlc_daily_rollups`,
+  `coingecko.raw_coins_ohlc`, or `coingecko.stg_coingecko__coins_ohlc`.
+
 ## Local setup
 
 1. Copy the local environment template:
