@@ -21,6 +21,7 @@ from felts.sources.coingecko.extractor import CoinGeckoExtractor
 from felts.sources.coingecko.schemas import (
     AssetPlatformsListPayload,
     CoinsListPayload,
+    CoinsMarketChartPayload,
     CoinsMarketsPayload,
     CoinsOhlcPayload,
     GlobalDefiPayload,
@@ -39,6 +40,7 @@ def build_coingecko_schema_registry() -> SchemaRegistry:
         "global_defi": GlobalDefiPayload,
         "coins_markets": CoinsMarketsPayload,
         "coins_ohlc": CoinsOhlcPayload,
+        "coins_market_chart": CoinsMarketChartPayload,
     }
     for entity, model in registrations.items():
         registry.register(

@@ -2,7 +2,7 @@
 id: task-0021
 title: "Phase 14: CoinGecko market metrics and OHLCV dbt models"
 type: task
-status: blocked
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-27
@@ -12,6 +12,7 @@ parent: ""
 depends_on:
   - task-0020
 ---
+
 
 # Task
 
@@ -93,3 +94,30 @@ Use `coins_market_chart` as daily volume truth. Do not derive daily volume from
 
 ## Notes
 
+- Added `coingecko.raw_coins_market_chart` source metadata and new staging model
+  `stg_coingecko__coins_market_chart`.
+- Added new marts:
+  `mart_coingecko__coin_daily_market_metrics` and
+  `mart_coingecko__coin_ohlcv_daily`.
+- Updated OHLC staging and mart models to carry the Phase 14 `interval` field.
+  For backward compatibility with pre-Phase-14 local raw rows that do not have
+  `payload.interval`, staging now surfaces `provider_default` instead of `null`.
+- The OHLCV mart joins `stg_coingecko__coins_ohlc` to
+  `stg_coingecko__coins_market_chart` on `coin_id`, `vs_currency`, and
+  `observed_at`, and uses `market_chart.total_volume` as `volume`.
+- Live note from Monday, July 27, 2026: local `./.venv/bin/felts coingecko run --entities coins_ohlc coins_market_chart`
+  failed on `coins_ohlc` because CoinGecko returned `400 Bad Request` for
+  `/coins/{id}/ohlc?...&interval=daily`. The dbt verification below therefore
+  used fresh live `coins_market_chart` raw rows plus the existing local OHLC
+  raw table.
+- Verification:
+  - `./.venv/bin/dbt parse --project-dir transforms --profiles-dir transforms`
+    -> passed
+  - `./.venv/bin/dbt seed --project-dir transforms --profiles-dir transforms`
+    -> `PASS=3 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=3`
+  - `./.venv/bin/felts coingecko run --entities coins_market_chart`
+    -> `source=coingecko entity=coins_market_chart extracted=270 inserted=270 skipped_duplicate=0 invalid=0 failed=0`
+  - `./.venv/bin/dbt run --project-dir transforms --profiles-dir transforms --select stg_coingecko__coins_ohlc+ stg_coingecko__coins_market_chart+`
+    -> `PASS=5 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=5`
+  - `./.venv/bin/dbt test --project-dir transforms --profiles-dir transforms --select stg_coingecko__coins_ohlc+ stg_coingecko__coins_market_chart+`
+    -> `PASS=45 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=45`

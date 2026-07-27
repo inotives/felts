@@ -4,10 +4,9 @@ select
     days,
     interval,
     timestamp_ms,
-    open,
-    high,
-    low,
-    close,
+    price,
+    market_cap,
+    total_volume,
     observed_at,
     extracted_at,
     loaded_at,
@@ -15,4 +14,4 @@ select
     source_record_id,
     batch_id,
     raw_payload
-from {{ ref('stg_coingecko__coins_ohlc') }}
+from {{ ref('stg_coingecko__coins_market_chart') }}

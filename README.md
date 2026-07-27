@@ -8,6 +8,8 @@ Implemented through Phase 13:
 
 - CoinGecko REST ingestion.
 - Scheduled CoinGecko OHLC candle capture for mapped internal crypto assets.
+- Phase 14 daily CoinGecko market-chart metrics, derived OHLCV marts, and
+  related MCP/dbt work are in progress pending a live OHLC ingest fix.
 - Alpha Vantage daily time-series ingestion.
 - YAML-driven OHLCV and FRED CSV imports.
 - Agent-pipe SQLite raw imports.
@@ -43,10 +45,14 @@ Examples:
 ```text
 coingecko.raw_coins_list
 coingecko.raw_coins_ohlc
+coingecko.raw_coins_market_chart
 coingecko.stg_coingecko__coins_list
 coingecko.stg_coingecko__coins_ohlc
+coingecko.stg_coingecko__coins_market_chart
 coingecko.mart_coingecko__coins
 coingecko.mart_coingecko__coin_ohlc_candles
+coingecko.mart_coingecko__coin_daily_market_metrics
+coingecko.mart_coingecko__coin_ohlcv_daily
 
 csv_import.raw_fred_series
 alphavantage.raw_time_series_daily
@@ -113,6 +119,7 @@ Supported entities:
 - `global_defi`
 - `coins_markets`
 - `coins_ohlc`
+- `coins_market_chart`
 
 Run all entities:
 
@@ -173,8 +180,8 @@ make dbt-test
 
 Implemented transforms include:
 
-- CoinGecko staging models for all six entities, including OHLC candles.
-- CoinGecko coins, asset-platform, OHLC candle, market-snapshot, global-market, and global-DeFi marts.
+- CoinGecko staging models for all seven entities, including OHLC candles and daily market metrics.
+- CoinGecko coins, asset-platform, OHLC candle, daily-market-metrics, OHLCV, market-snapshot, global-market, and global-DeFi marts.
 - Alpha Vantage daily-price marts.
 - OHLCV and FRED CSV staging models.
 - OHLCV and FRED CSV marts.

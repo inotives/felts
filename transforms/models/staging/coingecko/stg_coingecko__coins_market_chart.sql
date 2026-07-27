@@ -1,6 +1,6 @@
 with source as (
     select *
-    from {{ source('coingecko', 'raw_coins_ohlc') }}
+    from {{ source('coingecko', 'raw_coins_market_chart') }}
     where is_valid
 ),
 
@@ -9,12 +9,11 @@ ranked as (
         payload ->> 'coin_id' as coin_id,
         payload ->> 'vs_currency' as vs_currency,
         nullif(payload ->> 'days', '')::integer as days,
-        coalesce(nullif(payload ->> 'interval', ''), 'provider_default') as interval,
+        payload ->> 'interval' as interval,
         nullif(payload ->> 'timestamp_ms', '')::bigint as timestamp_ms,
-        nullif(payload ->> 'open', '')::numeric as open,
-        nullif(payload ->> 'high', '')::numeric as high,
-        nullif(payload ->> 'low', '')::numeric as low,
-        nullif(payload ->> 'close', '')::numeric as close,
+        nullif(payload ->> 'price', '')::numeric as price,
+        nullif(payload ->> 'market_cap', '')::numeric as market_cap,
+        nullif(payload ->> 'total_volume', '')::numeric as total_volume,
         observed_at,
         extracted_at,
         loaded_at,
@@ -23,7 +22,11 @@ ranked as (
         batch_id,
         payload as raw_payload,
         row_number() over (
-            partition by payload ->> 'coin_id', payload ->> 'vs_currency', observed_at
+            partition by
+                payload ->> 'coin_id',
+                payload ->> 'vs_currency',
+                payload ->> 'interval',
+                observed_at
             order by extracted_at desc, loaded_at desc
         ) as row_number
     from source
@@ -35,10 +38,9 @@ select
     days,
     interval,
     timestamp_ms,
-    open,
-    high,
-    low,
-    close,
+    price,
+    market_cap,
+    total_volume,
     observed_at,
     extracted_at,
     loaded_at,

@@ -2,7 +2,7 @@
 id: task-0022
 title: "Phase 14: OHLCV MCP access and docs"
 type: task
-status: blocked
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-27
@@ -12,6 +12,7 @@ parent: ""
 depends_on:
   - task-0021
 ---
+
 
 # Task
 
@@ -66,3 +67,21 @@ policy unless a focused test exposes a current bug.
 
 ## Notes
 
+- Added Phase 14 marts to the committed schema-qualified MCP allowlist:
+  `coingecko.mart_coingecko__coin_daily_market_metrics` and
+  `coingecko.mart_coingecko__coin_ohlcv_daily`.
+- Updated `tests/unit/test_prod_data_mcp.py` to:
+  - assert both new marts are in the committed allowlist
+  - accept bounded selects from both new marts
+  - reject `coingecko.stg_coingecko__coins_market_chart`
+  - cover `describe_allowed_view` for both new marts
+- Updated `docs/mcp/felts-prod-data.md` so both Phase 14 marts appear in the
+  preferred mart-first surface.
+- No production reconciliation command was run.
+- Verification:
+  - `./.venv/bin/pytest tests/unit/test_prod_data_mcp.py -q`
+    -> `37 passed in 0.23s`
+  - `./.venv/bin/ruff check tests/unit/test_prod_data_mcp.py`
+    -> `All checks passed!`
+  - `./.venv/bin/ruff format --check tests/unit/test_prod_data_mcp.py`
+    -> `1 file already formatted`

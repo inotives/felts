@@ -53,11 +53,33 @@ def test_coingecko_schema_registry_registers_coins_ohlc() -> None:
             "coin_id": "bitcoin",
             "vs_currency": "usd",
             "days": 90,
+            "interval": "daily",
             "timestamp_ms": 1735689600000,
             "open": 100.0,
             "high": 110.0,
             "low": 90.0,
             "close": 105.0,
+            "extra_field": "kept",
+        }
+    )
+    assert model.model_extra == {"extra_field": "kept"}
+
+
+def test_coingecko_schema_registry_registers_coins_market_chart() -> None:
+    registry = build_coingecko_schema_registry()
+    registered = registry.get(source="coingecko", entity="coins_market_chart")
+
+    assert registered is not None
+    model = registered.model.model_validate(
+        {
+            "coin_id": "bitcoin",
+            "vs_currency": "usd",
+            "days": 90,
+            "interval": "daily",
+            "timestamp_ms": 1735689600000,
+            "price": 100.0,
+            "market_cap": 200.0,
+            "total_volume": 300.0,
             "extra_field": "kept",
         }
     )
@@ -116,7 +138,10 @@ def test_run_coingecko_source_supports_coins_ohlc(httpx_mock: HTTPXMock, tmp_pat
         encoding="utf-8",
     )
     httpx_mock.add_response(
-        url="https://api.coingecko.test/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=90",
+        url=(
+            "https://api.coingecko.test/api/v3/coins/bitcoin/ohlc"
+            "?vs_currency=usd&days=90&interval=daily"
+        ),
         json=[[1735689600000, 100.0, 110.0, 90.0, 105.0]],
     )
     memory_loader = MemoryLoader()
@@ -139,6 +164,53 @@ def test_run_coingecko_source_supports_coins_ohlc(httpx_mock: HTTPXMock, tmp_pat
     assert summary.entities[0].entity == "coins_ohlc"
     assert summary.entities[0].inserted_count == 1
     assert memory_loader.records[0].source_record_id == "bitcoin|usd|1735689600000"
+
+
+def test_run_coingecko_source_supports_coins_market_chart(
+    httpx_mock: HTTPXMock, tmp_path: Path
+) -> None:
+    mappings_path = tmp_path / "asset_provider_mappings.csv"
+    mappings_path.write_text(
+        "\n".join(
+            [
+                "internal_asset_id,provider_source,provider_asset_id",
+                "bitcoin,coingecko,bitcoin",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    httpx_mock.add_response(
+        url=(
+            "https://api.coingecko.test/api/v3/coins/bitcoin/market_chart"
+            "?vs_currency=usd&days=90&interval=daily"
+        ),
+        json={
+            "prices": [[1735689600000, 100.0]],
+            "market_caps": [[1735689600000, 200.0]],
+            "total_volumes": [[1735689600000, 300.0]],
+        },
+    )
+    memory_loader = MemoryLoader()
+    writer = RawWriter(
+        schema_registry=build_coingecko_schema_registry(),
+        loader=memory_loader,
+    )
+    extractor = CoinGeckoExtractor(
+        client=_test_rest_client(),
+        asset_provider_mappings_path=mappings_path,
+    )
+
+    summary = run_coingecko_source(
+        entities=["coins_market_chart"],
+        settings=Settings(COINGECKO_BASE_URL="https://api.coingecko.test/api/v3"),
+        extractor=extractor,
+        writer=writer,
+    )
+
+    assert summary.entities[0].entity == "coins_market_chart"
+    assert summary.entities[0].inserted_count == 1
+    assert memory_loader.records[0].source_record_id == "bitcoin|usd|daily|1735689600000"
 
 
 def _test_rest_client() -> RestClient:

@@ -24,7 +24,9 @@ def test_load_allowed_views_reads_committed_allowlist() -> None:
     assert load_allowed_views() == (
         "alphavantage.mart_alphavantage__daily_prices",
         "coingecko.mart_coingecko__asset_platforms",
+        "coingecko.mart_coingecko__coin_daily_market_metrics",
         "coingecko.mart_coingecko__coin_ohlc_candles",
+        "coingecko.mart_coingecko__coin_ohlcv_daily",
         "coingecko.mart_coingecko__coin_market_snapshots",
         "coingecko.mart_coingecko__coins",
         "coingecko.mart_coingecko__global_defi_snapshots",
@@ -55,8 +57,22 @@ def test_validate_query_allows_unbounded_aggregate() -> None:
     ("sql", "normalized"),
     [
         (
+            (
+                "select coin_id, price, market_cap "
+                "from coingecko.mart_coingecko__coin_daily_market_metrics limit 5"
+            ),
+            (
+                "SELECT coin_id, price, market_cap "
+                "FROM coingecko.mart_coingecko__coin_daily_market_metrics LIMIT 5"
+            ),
+        ),
+        (
             "select coin_id, open, close from coingecko.mart_coingecko__coin_ohlc_candles limit 5",
             "SELECT coin_id, open, close FROM coingecko.mart_coingecko__coin_ohlc_candles LIMIT 5",
+        ),
+        (
+            "select coin_id, volume, close from coingecko.mart_coingecko__coin_ohlcv_daily limit 5",
+            "SELECT coin_id, volume, close FROM coingecko.mart_coingecko__coin_ohlcv_daily LIMIT 5",
         ),
         (
             "select traded_at, close from alphavantage.mart_alphavantage__daily_prices limit 5",
@@ -99,6 +115,7 @@ def test_validate_query_rejects_unsafe_sql(sql: str) -> None:
         "select * from public.stg_alphavantage__time_series_daily limit 5",
         "select * from coingecko.stg_coingecko__asset_platforms_list limit 5",
         "select * from coingecko.stg_coingecko__coins_list limit 5",
+        "select * from coingecko.stg_coingecko__coins_market_chart limit 5",
         "select * from coingecko.stg_coingecko__coins_markets limit 5",
         "select * from coingecko.stg_coingecko__global limit 5",
         "select * from coingecko.stg_coingecko__global_defi limit 5",
@@ -116,9 +133,19 @@ def test_validate_query_rejects_removed_staging_relations(sql: str) -> None:
     [
         ("coingecko.mart_coingecko__coins", "coingecko", "mart_coingecko__coins"),
         (
+            "coingecko.mart_coingecko__coin_daily_market_metrics",
+            "coingecko",
+            "mart_coingecko__coin_daily_market_metrics",
+        ),
+        (
             "coingecko.mart_coingecko__coin_ohlc_candles",
             "coingecko",
             "mart_coingecko__coin_ohlc_candles",
+        ),
+        (
+            "coingecko.mart_coingecko__coin_ohlcv_daily",
+            "coingecko",
+            "mart_coingecko__coin_ohlcv_daily",
         ),
         (
             "alphavantage.mart_alphavantage__daily_prices",
