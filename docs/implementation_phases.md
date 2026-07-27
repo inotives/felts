@@ -18,7 +18,7 @@ This breaks the Felts project specification into implementation phases ordered b
 11. [Phase 11 - Analytical Marts and Felts Internal Assets](./_archived/phase_11_analytical_marts_and_internal_assets.md)
 12. [Phase 12 - Analytical Access Refresh](./_archived/phase_12_analytical_access_refresh.md)
 13. [Phase 13 - CoinGecko OHLC Capture](./_archived/phase_13_coingecko_ohlc_capture.md)
-14. [Phase 14 - CoinGecko Daily Market Metrics and OHLCV](./phases/phase_14_coingecko_daily_market_metrics_and_ohlcv.md)
+14. [Phase 14 - CoinGecko Daily Market Metrics and OHLCV](./_archived/phase_14_coingecko_daily_market_metrics_and_ohlcv.md)
 
 ## Dependency Shape
 
