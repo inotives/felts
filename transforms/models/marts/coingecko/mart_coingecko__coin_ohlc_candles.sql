@@ -15,4 +15,4 @@ select
     source_record_id,
     batch_id,
     raw_payload
-from {{ ref('stg_coingecko__coins_ohlc') }}
+from {{ ref('int_coingecko__coin_ohlc_daily_rollups') }}

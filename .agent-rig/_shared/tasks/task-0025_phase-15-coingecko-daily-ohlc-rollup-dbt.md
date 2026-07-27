@@ -2,7 +2,7 @@
 id: task-0025
 title: "Phase 15: CoinGecko daily OHLC rollup dbt"
 type: task
-status: blocked
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-27
@@ -12,6 +12,9 @@ parent: ""
 depends_on:
   - task-0024
 ---
+
+
+
 
 # Task
 
@@ -81,3 +84,52 @@ Do not expose the intermediate model through MCP.
 - [ ] Focused dbt verification or blocker details are recorded in `## Notes`.
 
 ## Notes
+
+- Added `transforms/models/intermediate/coingecko/int_coingecko__coin_ohlc_daily_rollups.sql`
+  and `transforms/dbt_project.yml` intermediate-path config so Phase 15 daily
+  OHLC rollups build in the `coingecko` schema.
+- The intermediate rollup filters `stg_coingecko__coins_ohlc` to corrected
+  `days = 30` and `interval = '4h'` rows, derives UTC daily `observed_at`,
+  uses the first 4-hour candle open, max high, min low, and last 4-hour candle
+  close, and keeps one row per `coin_id, vs_currency, observed_at`.
+- Rewired `mart_coingecko__coin_ohlc_candles` and
+  `mart_coingecko__coin_ohlcv_daily` to read from the intermediate daily OHLC
+  rollup instead of raw staging OHLC rows.
+- Updated CoinGecko dbt model docs/tests so the intermediate model, OHLC mart,
+  and OHLCV mart assert daily UTC grain, and the OHLC rollup surface asserts
+  `days = 30` and `interval = 'daily'`.
+- Verification:
+  - `./.venv/bin/dbt parse --project-dir transforms --profiles-dir transforms`
+  - `./.venv/bin/dbt seed --project-dir transforms --profiles-dir transforms`
+  - `./.venv/bin/dbt run --project-dir transforms --profiles-dir transforms --select stg_coingecko__coins_ohlc+ stg_coingecko__coins_market_chart+`
+  - `./.venv/bin/dbt test --project-dir transforms --profiles-dir transforms --select stg_coingecko__coins_ohlc+ stg_coingecko__coins_market_chart+`
+  - Results:
+    - `dbt parse` completed successfully
+    - `dbt seed`: `PASS=3`
+    - `dbt run`: `PASS=6`
+    - `dbt test`: `PASS=61`
+- Reviewer verification on Monday, July 27, 2026:
+  - `./.venv/bin/dbt parse --project-dir transforms --profiles-dir transforms`
+  - sandboxed `dbt seed` hit localhost Postgres permission denial, then reran
+    unsandboxed:
+  - `env UV_CACHE_DIR=/tmp/felts-uv-cache ./.venv/bin/dbt seed --project-dir transforms --profiles-dir transforms`
+  - `env UV_CACHE_DIR=/tmp/felts-uv-cache ./.venv/bin/dbt run --project-dir transforms --profiles-dir transforms --select stg_coingecko__coins_ohlc+ stg_coingecko__coins_market_chart+`
+  - `env UV_CACHE_DIR=/tmp/felts-uv-cache ./.venv/bin/dbt test --project-dir transforms --profiles-dir transforms --select stg_coingecko__coins_ohlc+ stg_coingecko__coins_market_chart+`
+  - Results:
+    - `dbt seed`: `PASS=3`
+    - `dbt run`: `PASS=6`
+    - `dbt test`: `PASS=61`
+  - Warehouse spot-check:
+    - corrected staging OHLC rows: `540`
+    - intermediate daily OHLC rows: `93`
+    - `mart_coingecko__coin_ohlc_candles` rows: `93`
+    - `mart_coingecko__coin_ohlcv_daily` rows: `90`
+  - Sample July 27, 2026 BTC rollup matched staging math exactly:
+    - daily `open` = first 4h open
+    - daily `high` = max 4h high
+    - daily `low` = min 4h low
+    - daily `close` = last 4h close
+  - The 3-row gap between OHLC and OHLCV is the expected current-day join gap:
+    July 27, 2026 OHLC rows existed for BTC, ETH, and SOL before same-day
+    `coins_market_chart` metrics were available, so they do not yet appear in
+    `mart_coingecko__coin_ohlcv_daily`.

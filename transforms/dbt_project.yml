@@ -24,6 +24,10 @@ models:
         +schema: coingecko
       csv_import:
         +schema: csv_import
+    intermediate:
+      +materialized: view
+      coingecko:
+        +schema: coingecko
     marts:
       +materialized: table
       alphavantage:

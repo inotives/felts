@@ -117,17 +117,11 @@ def test_extracts_coins_ohlc_from_seed_mappings_with_duplicate_safe_identity(
         encoding="utf-8",
     )
     httpx_mock.add_response(
-        url=(
-            "https://api.coingecko.test/api/v3/coins/bitcoin/ohlc"
-            "?vs_currency=usd&days=90&interval=daily"
-        ),
+        url=("https://api.coingecko.test/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=30"),
         json=[[1735689600000, 100.0, 110.0, 90.0, 105.0]],
     )
     httpx_mock.add_response(
-        url=(
-            "https://api.coingecko.test/api/v3/coins/ethereum/ohlc"
-            "?vs_currency=usd&days=90&interval=daily"
-        ),
+        url=("https://api.coingecko.test/api/v3/coins/ethereum/ohlc?vs_currency=usd&days=30"),
         json=[[1735776000000, 10.0, 11.0, 9.0, 10.5]],
     )
 
@@ -146,8 +140,8 @@ def test_extracts_coins_ohlc_from_seed_mappings_with_duplicate_safe_identity(
     assert records[0].payload == {
         "coin_id": "bitcoin",
         "vs_currency": "usd",
-        "days": 90,
-        "interval": "daily",
+        "days": 30,
+        "interval": "4h",
         "timestamp_ms": 1735689600000,
         "open": 100.0,
         "high": 110.0,
@@ -161,8 +155,8 @@ def test_extracts_coins_ohlc_from_seed_mappings_with_duplicate_safe_identity(
         "/api/v3/coins/ethereum/ohlc",
     ]
     assert requests[0].url.params["vs_currency"] == "usd"
-    assert requests[0].url.params["days"] == "90"
-    assert requests[0].url.params["interval"] == "daily"
+    assert requests[0].url.params["days"] == "30"
+    assert "interval" not in requests[0].url.params
 
 
 def test_extracts_coins_market_chart_from_seed_mappings_with_stable_identity(
@@ -263,10 +257,7 @@ def test_malformed_coins_ohlc_shape_fails(
         encoding="utf-8",
     )
     httpx_mock.add_response(
-        url=(
-            "https://api.coingecko.test/api/v3/coins/bitcoin/ohlc"
-            "?vs_currency=usd&days=90&interval=daily"
-        ),
+        url=("https://api.coingecko.test/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=30"),
         json=response_json,
     )
 
