@@ -90,6 +90,9 @@ models:
       - name: vs_currency
         tests:
           - not_null
+      - name: interval
+        tests:
+          - not_null
       - name: observed_at
         tests:
           - not_null
@@ -103,6 +106,39 @@ models:
         tests:
           - not_null
       - name: close
+        tests:
+          - not_null
+
+  - name: stg_coingecko__coins_market_chart
+    description: Deduplicated CoinGecko daily market metrics by coin, quote currency, interval, and observed timestamp.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - coin_id
+              - vs_currency
+              - interval
+              - observed_at
+    columns:
+      - name: coin_id
+        tests:
+          - not_null
+      - name: vs_currency
+        tests:
+          - not_null
+      - name: interval
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+      - name: price
+        tests:
+          - not_null
+      - name: market_cap
+        tests:
+          - not_null
+      - name: total_volume
         tests:
           - not_null
 
@@ -186,6 +222,9 @@ models:
       - name: vs_currency
         tests:
           - not_null
+      - name: interval
+        tests:
+          - not_null
       - name: observed_at
         tests:
           - not_null
@@ -199,5 +238,79 @@ models:
         tests:
           - not_null
       - name: close
+        tests:
+          - not_null
+
+  - name: mart_coingecko__coin_daily_market_metrics
+    description: Provider-shaped CoinGecko daily market metrics at one row per coin, quote currency, interval, and observed timestamp.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - coin_id
+              - vs_currency
+              - interval
+              - observed_at
+    columns:
+      - name: coin_id
+        tests:
+          - not_null
+      - name: vs_currency
+        tests:
+          - not_null
+      - name: interval
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+      - name: price
+        tests:
+          - not_null
+      - name: market_cap
+        tests:
+          - not_null
+      - name: total_volume
+        tests:
+          - not_null
+
+  - name: mart_coingecko__coin_ohlcv_daily
+    description: Provider-shaped daily CoinGecko OHLCV rows joined from OHLC candles and market-chart metrics.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - coin_id
+              - vs_currency
+              - observed_at
+    columns:
+      - name: coin_id
+        tests:
+          - not_null
+      - name: vs_currency
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+      - name: open
+        tests:
+          - not_null
+      - name: high
+        tests:
+          - not_null
+      - name: low
+        tests:
+          - not_null
+      - name: close
+        tests:
+          - not_null
+      - name: volume
+        tests:
+          - not_null
+      - name: market_cap
+        tests:
+          - not_null
+      - name: price
         tests:
           - not_null

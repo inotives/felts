@@ -78,6 +78,8 @@ class CoinGeckoExtractor(BaseExtractor):
                 return self.extract_coins_markets()
             case "coins_ohlc":
                 return self.extract_coins_ohlc()
+            case "coins_market_chart":
+                return self.extract_coins_market_chart()
 
     def extract_coins_list(self) -> list[ExtractedRecord]:
         payloads = self._get_list("coins_list")
@@ -140,6 +142,7 @@ class CoinGeckoExtractor(BaseExtractor):
                 params={
                     "vs_currency": self.markets_vs_currency,
                     "days": self.ohlc_days,
+                    "interval": "daily",
                 },
             )
             if not isinstance(data, list):
@@ -147,6 +150,22 @@ class CoinGeckoExtractor(BaseExtractor):
                 raise ExtractionError(msg)
             for row in data:
                 records.append(self._ohlc_record(coin_id=coin_id, row=row))
+        return records
+
+    def extract_coins_market_chart(self) -> list[ExtractedRecord]:
+        records: list[ExtractedRecord] = []
+        for coin_id in self.ohlc_coin_ids:
+            data = self.client.get_json(
+                ENDPOINTS["coins_market_chart"].path.format(coin_id=coin_id),
+                params={
+                    "vs_currency": self.markets_vs_currency,
+                    "days": self.ohlc_days,
+                    "interval": "daily",
+                },
+            )
+            series = _parse_market_chart_series(data)
+            for row in series:
+                records.append(self._market_chart_record(coin_id=coin_id, row=row))
         return records
 
     def _get_list(self, entity: CoinGeckoEntity) -> list[dict[str, Any]]:
@@ -197,6 +216,7 @@ class CoinGeckoExtractor(BaseExtractor):
             "coin_id": coin_id,
             "vs_currency": self.markets_vs_currency,
             "days": self.ohlc_days,
+            "interval": "daily",
             "timestamp_ms": timestamp_ms,
             "open": open_price,
             "high": high_price,
@@ -209,6 +229,28 @@ class CoinGeckoExtractor(BaseExtractor):
             payload=payload,
             observed_at=datetime.fromtimestamp(timestamp_ms / 1000, tz=UTC),
             source_record_id=f"{coin_id}|{self.markets_vs_currency}|{timestamp_ms}",
+        )
+
+    def _market_chart_record(
+        self, *, coin_id: str, row: tuple[int, float, float, float]
+    ) -> ExtractedRecord:
+        timestamp_ms, price, market_cap, total_volume = row
+        payload = {
+            "coin_id": coin_id,
+            "vs_currency": self.markets_vs_currency,
+            "days": self.ohlc_days,
+            "interval": "daily",
+            "timestamp_ms": timestamp_ms,
+            "price": price,
+            "market_cap": market_cap,
+            "total_volume": total_volume,
+        }
+        return ExtractedRecord(
+            source=COINGECKO_SOURCE,
+            entity="coins_market_chart",
+            payload=payload,
+            observed_at=datetime.fromtimestamp(timestamp_ms / 1000, tz=UTC),
+            source_record_id=f"{coin_id}|{self.markets_vs_currency}|daily|{timestamp_ms}",
         )
 
 
@@ -257,15 +299,61 @@ def _parse_ohlc_row(row: Any) -> tuple[int, float, float, float, float]:
     return (timestamp_ms, open_price, high_price, low_price, close_price)
 
 
-def _int_value(value: Any, *, field_name: str) -> int:
+def _parse_market_chart_series(data: Any) -> list[tuple[int, float, float, float]]:
+    if not isinstance(data, dict):
+        msg = "CoinGecko coins_market_chart response must be an object"
+        raise ExtractionError(msg)
+
+    prices = _parse_market_chart_metric_rows(field_name="prices", value=data.get("prices"))
+    market_caps = _parse_market_chart_metric_rows(
+        field_name="market_caps", value=data.get("market_caps")
+    )
+    total_volumes = _parse_market_chart_metric_rows(
+        field_name="total_volumes", value=data.get("total_volumes")
+    )
+    timestamps = set(prices) | set(market_caps) | set(total_volumes)
+    if (
+        timestamps != set(prices)
+        or timestamps != set(market_caps)
+        or timestamps != set(total_volumes)
+    ):
+        msg = "CoinGecko coins_market_chart metrics must share the same timestamps"
+        raise ExtractionError(msg)
+    return [
+        (
+            timestamp_ms,
+            prices[timestamp_ms],
+            market_caps[timestamp_ms],
+            total_volumes[timestamp_ms],
+        )
+        for timestamp_ms in sorted(timestamps)
+    ]
+
+
+def _parse_market_chart_metric_rows(*, field_name: str, value: Any) -> dict[int, float]:
+    if not isinstance(value, list):
+        msg = f"CoinGecko coins_market_chart {field_name} must be a list"
+        raise ExtractionError(msg)
+    rows: dict[int, float] = {}
+    for row in value:
+        if not isinstance(row, list) or len(row) != 2:
+            msg = f"CoinGecko coins_market_chart {field_name} rows must be two-item arrays"
+            raise ExtractionError(msg)
+        timestamp_ms = _int_value(row[0], field_name="timestamp_ms", entity="coins_market_chart")
+        metric_value = _float_value(row[1], field_name=field_name, entity="coins_market_chart")
+        rows[timestamp_ms] = metric_value
+    return rows
+
+
+def _int_value(value: Any, *, field_name: str, entity: str = "coins_ohlc") -> int:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        msg = f"CoinGecko coins_ohlc {field_name} must be numeric"
+        msg = f"CoinGecko {entity} {field_name} must be numeric"
         raise ExtractionError(msg)
     return int(value)
 
 
-def _float_value(value: Any, *, field_name: str) -> float:
+def _float_value(value: Any, *, field_name: str, entity: str = "coins_ohlc") -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        msg = f"CoinGecko coins_ohlc {field_name} must be numeric"
+        msg = f"CoinGecko {entity} {field_name} must be numeric"
         raise ExtractionError(msg)
     return float(value)

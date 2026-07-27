@@ -44,8 +44,20 @@ class CoinsOhlcPayload(CoinGeckoModel):
     coin_id: str
     vs_currency: str
     days: int
+    interval: str
     timestamp_ms: int
     open: float
     high: float
     low: float
     close: float
+
+
+class CoinsMarketChartPayload(CoinGeckoModel):
+    coin_id: str
+    vs_currency: str
+    days: int
+    interval: str
+    timestamp_ms: int
+    price: float
+    market_cap: float
+    total_volume: float

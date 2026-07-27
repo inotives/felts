@@ -34,6 +34,19 @@ def test_raw_completion_event_payload_maps_coins_ohlc_selector() -> None:
     assert raw_completion_payload(summary)["dbt_selector"] == "stg_coingecko__coins_ohlc+"
 
 
+def test_raw_completion_event_payload_maps_phase_14_selectors() -> None:
+    market_chart_summary = _entity_summary(entity="coins_market_chart", inserted_count=2)
+    markets_summary = _entity_summary(entity="coins_markets", inserted_count=2)
+
+    assert (
+        raw_completion_payload(market_chart_summary)["dbt_selector"]
+        == "stg_coingecko__coins_market_chart+"
+    )
+    assert (
+        raw_completion_payload(markets_summary)["dbt_selector"] == "stg_coingecko__coins_markets+"
+    )
+
+
 def test_raw_completion_event_gate_requires_inserted_rows() -> None:
     assert should_emit_raw_completion_event(_entity_summary(inserted_count=1)) is True
     assert should_emit_raw_completion_event(_entity_summary(inserted_count=0)) is False

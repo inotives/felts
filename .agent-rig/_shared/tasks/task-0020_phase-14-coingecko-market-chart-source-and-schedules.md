@@ -2,7 +2,7 @@
 id: task-0020
 title: "Phase 14: CoinGecko market-chart source and schedules"
 type: task
-status: ready
+status: done
 assigned_to: worker
 created_by: human
 created_on: 2026-07-27
@@ -11,6 +11,7 @@ priority: normal
 parent: ""
 depends_on: []
 ---
+
 
 # Task
 
@@ -104,3 +105,22 @@ Do not add broad all-CoinGecko per-coin market-chart capture.
 
 ## Notes
 
+- Added `coins_market_chart` to CoinGecko supported entities, raw schema
+  registration, event selector mapping, and deployment schedule wiring.
+- Added `/coins/{coin_id}/market_chart` extraction for mapped CoinGecko assets
+  using `vs_currency`, `days=90`, and `interval=daily`, with flattened raw
+  payload fields:
+  `coin_id|vs_currency|days|interval|timestamp_ms|price|market_cap|total_volume`.
+- Updated `coins_ohlc` requests to send `interval=daily` and to include
+  `interval` in the raw payload while keeping raw identity as
+  `coin_id|vs_currency|timestamp_ms`.
+- Added focused tests for market-chart parsing, malformed response rejection,
+  schema registration, runner support, event selectors, and staggered Phase 14
+  schedules.
+- Verification:
+  - `./.venv/bin/pytest tests/unit/sources/coingecko/test_extractor.py tests/unit/sources/coingecko/test_runner.py tests/unit/sources/coingecko/test_deployments.py tests/unit/sources/coingecko/test_events.py -q`
+    -> `31 passed in 2.84s`
+  - `./.venv/bin/ruff check src/felts/sources/coingecko tests/unit/sources/coingecko`
+    -> `All checks passed!`
+  - `./.venv/bin/ruff format --check src/felts/sources/coingecko tests/unit/sources/coingecko`
+    -> `15 files already formatted`

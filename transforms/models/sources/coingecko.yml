@@ -17,3 +17,5 @@ sources:
         description: Raw CoinGecko market snapshot records.
       - name: raw_coins_ohlc
         description: Raw CoinGecko OHLC candle records for selected mapped coins.
+      - name: raw_coins_market_chart
+        description: Raw CoinGecko daily market metric records for selected mapped coins.
