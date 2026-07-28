@@ -20,7 +20,7 @@ This breaks the Felts project specification into implementation phases ordered b
 13. [Phase 13 - CoinGecko OHLC Capture](./_archived/phase_13_coingecko_ohlc_capture.md)
 14. [Phase 14 - CoinGecko Daily Market Metrics and OHLCV](./_archived/phase_14_coingecko_daily_market_metrics_and_ohlcv.md)
 15. [Phase 15 - CoinGecko Public OHLC Rollup Fix](./_archived/phase_15_coingecko_public_ohlc_rollup_fix.md)
-16. [Phase 16 - CCXT Exchange Market Snapshots](./phases/phase_16_ccxt_exchange_market_snapshots.md)
+16. [Phase 16 - CCXT Exchange Market Snapshots](./_archived/phase_16_ccxt_exchange_market_snapshots.md)
 
 ## Dependency Shape
 
