@@ -6,6 +6,7 @@ import argparse
 from collections.abc import Sequence
 
 from felts.sources.coingecko.cli import register_cli as register_coingecko_cli
+from felts.sources.ccxt.cli import register_cli as register_ccxt_cli
 from felts.sources.csv_import.cli import register_cli as register_csv_cli
 from felts.sources.agent_pipe.cli import register_cli as register_agent_pipe_cli
 
@@ -28,6 +29,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="felts")
     subparsers = parser.add_subparsers(dest="command")
     register_coingecko_cli(subparsers)
+    register_ccxt_cli(subparsers)
     register_csv_cli(subparsers)
     register_agent_pipe_cli(subparsers)
     # scaffold: source-cli-registrations:start

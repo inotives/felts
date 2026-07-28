@@ -726,6 +726,7 @@ name = "felts"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "ccxt" },
     { name = "httpx" },
     { name = "pandas" },
     { name = "pydantic" },
@@ -746,7 +747,6 @@ dev = [
     { name = "types-pyyaml" },
 ]
 finance = [
-    { name = "ccxt" },
     { name = "statsmodels" },
     { name = "yfinance" },
 ]
@@ -767,6 +767,7 @@ postgres = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ccxt", specifier = ">=4.4.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "pandas", specifier = ">=2.2.0" },
     { name = "pydantic", specifier = ">=2.10.0" },
@@ -787,7 +788,6 @@ dev = [
     { name = "types-pyyaml", specifier = ">=6.0.0" },
 ]
 finance = [
-    { name = "ccxt", specifier = ">=4.4.0" },
     { name = "statsmodels", specifier = ">=0.14.0" },
     { name = "yfinance", specifier = ">=0.2.0" },
 ]

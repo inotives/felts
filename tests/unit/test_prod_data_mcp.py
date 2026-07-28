@@ -23,6 +23,8 @@ from felts.prod_data_mcp import (
 def test_load_allowed_views_reads_committed_allowlist() -> None:
     assert load_allowed_views() == (
         "alphavantage.mart_alphavantage__daily_prices",
+        "ccxt.mart_ccxt__order_book_snapshots",
+        "ccxt.mart_ccxt__tickers",
         "coingecko.mart_coingecko__asset_platforms",
         "coingecko.mart_coingecko__coin_daily_market_metrics",
         "coingecko.mart_coingecko__coin_ohlc_candles",
@@ -56,6 +58,20 @@ def test_validate_query_allows_unbounded_aggregate() -> None:
 @pytest.mark.parametrize(
     ("sql", "normalized"),
     [
+        (
+            (
+                "select observed_at, best_bid, best_ask "
+                "from ccxt.mart_ccxt__order_book_snapshots limit 5"
+            ),
+            (
+                "SELECT observed_at, best_bid, best_ask "
+                "FROM ccxt.mart_ccxt__order_book_snapshots LIMIT 5"
+            ),
+        ),
+        (
+            "select observed_at, last_price from ccxt.mart_ccxt__tickers limit 5",
+            "SELECT observed_at, last_price FROM ccxt.mart_ccxt__tickers LIMIT 5",
+        ),
         (
             (
                 "select coin_id, price, market_cap "
@@ -112,6 +128,10 @@ def test_validate_query_rejects_unsafe_sql(sql: str) -> None:
 @pytest.mark.parametrize(
     "sql",
     [
+        "select * from ccxt.raw_order_book limit 5",
+        "select * from ccxt.raw_ticker limit 5",
+        "select * from ccxt.stg_ccxt__order_books limit 5",
+        "select * from ccxt.stg_ccxt__tickers limit 5",
         "select * from coingecko.int_coingecko__coin_ohlc_daily_rollups limit 5",
         "select * from coingecko.raw_coins_ohlc limit 5",
         "select * from coingecko.stg_coingecko__coins_ohlc limit 5",
@@ -134,6 +154,16 @@ def test_validate_query_rejects_removed_staging_relations(sql: str) -> None:
 @pytest.mark.parametrize(
     ("view_name", "expected_schema", "expected_table"),
     [
+        (
+            "ccxt.mart_ccxt__order_book_snapshots",
+            "ccxt",
+            "mart_ccxt__order_book_snapshots",
+        ),
+        (
+            "ccxt.mart_ccxt__tickers",
+            "ccxt",
+            "mart_ccxt__tickers",
+        ),
         ("coingecko.mart_coingecko__coins", "coingecko", "mart_coingecko__coins"),
         (
             "coingecko.mart_coingecko__coin_daily_market_metrics",
@@ -245,6 +275,10 @@ def test_query_result_serializes_and_marks_truncated() -> None:
 def test_load_dbt_descriptions_includes_model_descriptions() -> None:
     descriptions = load_dbt_descriptions()
 
+    assert (
+        descriptions["mart_ccxt__tickers"]["description"]
+        == "CCXT ticker snapshots at the staging model grain."
+    )
     assert (
         descriptions["stg_alphavantage__time_series_daily"]["description"]
         == "Alpha Vantage daily prices at one row per symbol and trading date."

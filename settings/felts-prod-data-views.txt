@@ -1,4 +1,6 @@
 alphavantage.mart_alphavantage__daily_prices
+ccxt.mart_ccxt__order_book_snapshots
+ccxt.mart_ccxt__tickers
 coingecko.mart_coingecko__asset_platforms
 coingecko.mart_coingecko__coin_daily_market_metrics
 coingecko.mart_coingecko__coin_ohlc_candles

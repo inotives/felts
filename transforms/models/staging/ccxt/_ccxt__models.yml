@@ -1,0 +1,106 @@
+version: 2
+
+models:
+  - name: stg_ccxt__tickers
+    description: Deduplicated CCXT ticker snapshots by exchange, symbol, and observed timestamp.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - exchange_id
+              - symbol
+              - observed_at
+    columns:
+      - name: exchange_id
+        tests:
+          - not_null
+      - name: symbol
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+      - name: raw_record_id
+        tests:
+          - not_null
+
+  - name: stg_ccxt__order_books
+    description: Deduplicated CCXT order book snapshots by exchange, symbol, and observed timestamp.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - exchange_id
+              - symbol
+              - observed_at
+    columns:
+      - name: exchange_id
+        tests:
+          - not_null
+      - name: symbol
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+      - name: bids
+        tests:
+          - not_null
+      - name: asks
+        tests:
+          - not_null
+      - name: raw_record_id
+        tests:
+          - not_null
+
+  - name: mart_ccxt__tickers
+    description: CCXT ticker snapshots at the staging model grain.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - exchange_id
+              - symbol
+              - observed_at
+    columns:
+      - name: exchange_id
+        tests:
+          - not_null
+      - name: symbol
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+      - name: raw_record_id
+        tests:
+          - not_null
+
+  - name: mart_ccxt__order_book_snapshots
+    description: CCXT order book snapshots at one row per exchange, symbol, and observed timestamp with preserved top-20 bid and ask JSON arrays.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - exchange_id
+              - symbol
+              - observed_at
+    columns:
+      - name: exchange_id
+        tests:
+          - not_null
+      - name: symbol
+        tests:
+          - not_null
+      - name: observed_at
+        tests:
+          - not_null
+      - name: bids
+        tests:
+          - not_null
+      - name: asks
+        tests:
+          - not_null
+      - name: raw_record_id
+        tests:
+          - not_null

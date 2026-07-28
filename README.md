@@ -4,7 +4,7 @@ Felts stands for **Financial ELT Stacks**. It extracts financial data from APIs
 and CSV files, preserves raw evidence in Postgres, transforms it with dbt, and
 orchestrates operational runs with Prefect.
 
-Implemented through Phase 15:
+Implemented through Phase 16:
 
 - CoinGecko REST ingestion.
 - Scheduled CoinGecko OHLC candle capture for mapped internal crypto assets.
@@ -12,11 +12,14 @@ Implemented through Phase 15:
   4-hour candle staging.
 - Phase 15 dbt-derived daily CoinGecko OHLC rollups and daily OHLCV marts built
   from rollup OHLC plus market-chart metrics.
+- Manual-only CCXT Binance `BTC/USDT` public ticker and top-20 order-book
+  capture.
 - Alpha Vantage daily time-series ingestion.
 - YAML-driven OHLCV and FRED CSV imports.
 - Agent-pipe SQLite raw imports.
 - Deterministic, idempotent raw landing in Postgres and TimescaleDB.
-- dbt staging plus source-owned CoinGecko, Alpha Vantage, and CSV mart models.
+- dbt staging plus source-owned CoinGecko, CCXT, Alpha Vantage, and CSV mart
+  models.
 - Felts-owned internal asset, asset platform, and provider mapping marts.
 - Mart-first MCP analytical access through a schema-qualified allowlist.
 - Prefect schedules, Raw Completion Events, and scoped dbt transforms.
@@ -55,6 +58,12 @@ coingecko.mart_coingecko__coins
 coingecko.mart_coingecko__coin_ohlc_candles
 coingecko.mart_coingecko__coin_daily_market_metrics
 coingecko.mart_coingecko__coin_ohlcv_daily
+ccxt.raw_ticker
+ccxt.raw_order_book
+ccxt.stg_ccxt__tickers
+ccxt.stg_ccxt__order_books
+ccxt.mart_ccxt__tickers
+ccxt.mart_ccxt__order_book_snapshots
 
 csv_import.raw_fred_series
 alphavantage.raw_time_series_daily
@@ -185,6 +194,8 @@ Implemented transforms include:
 - CoinGecko staging models for all seven entities, including provider 4-hour OHLC candles and daily market metrics.
 - CoinGecko intermediate daily OHLC rollup models derived from corrected public OHLC capture.
 - CoinGecko coins, asset-platform, daily OHLC rollup candle, daily-market-metrics, OHLCV, market-snapshot, global-market, and global-DeFi marts.
+- CCXT ticker and order-book staging models plus provider-native ticker and
+  order-book snapshot marts.
 - Alpha Vantage daily-price marts.
 - OHLCV and FRED CSV staging models.
 - OHLCV and FRED CSV marts.

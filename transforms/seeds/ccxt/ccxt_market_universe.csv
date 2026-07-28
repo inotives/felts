@@ -1,0 +1,2 @@
+exchange_id,symbol,base_asset,quote_asset,order_book_limit,is_active
+binance,BTC/USDT,BTC,USDT,20,true
