@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: ccxt
+    description: CCXT raw landing schema loaded by the Python EL slice.
+    schema: ccxt
+    tables:
+      - name: raw_ticker
+        description: Raw CCXT ticker snapshot records.
+      - name: raw_order_book
+        description: Raw CCXT order book snapshot records.

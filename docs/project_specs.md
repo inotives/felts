@@ -1,8 +1,8 @@
 # Felts Project Specifications
 
 **Version:** 2.0.0
-**Last Updated:** 2026-07-27
-**Status:** Implemented through Phase 15
+**Last Updated:** 2026-07-28
+**Status:** Implemented through Phase 16
 
 Felts is a financial ELT system that extracts source data, preserves raw evidence in
 Postgres, transforms it with dbt, and orchestrates operational runs with Prefect.
@@ -23,6 +23,8 @@ Phases 01 through 10 delivered:
   4-hour candle staging.
 - dbt-derived daily CoinGecko OHLC rollups and daily OHLCV marts built from
   rollup OHLC plus market-chart metrics.
+- Manual-only CCXT Binance `BTC/USDT` public ticker and top-20 order-book
+  capture with provider-native staging and marts.
 - Alpha Vantage daily time-series ingestion.
 - dbt source, staging, and mart models.
 - Prefect source deployments, Raw Completion Events, and scoped dbt transforms.
@@ -287,6 +289,16 @@ Implemented CoinGecko marts:
 - `mart_coingecko__global_market_snapshots`
 - `mart_coingecko__global_defi_snapshots`
 
+Implemented CCXT staging models:
+
+- `stg_ccxt__tickers`
+- `stg_ccxt__order_books`
+
+Implemented CCXT marts:
+
+- `mart_ccxt__tickers`
+- `mart_ccxt__order_book_snapshots`
+
 Implemented Alpha Vantage marts:
 
 - `mart_alphavantage__daily_prices`
@@ -437,6 +449,15 @@ names, and production grant reconciliation remains the rerunnable operator step 
 The allowlist still excludes intermediate, staging, and raw OHLC relations,
 including `coingecko.int_coingecko__coin_ohlc_daily_rollups`,
 `coingecko.stg_coingecko__coins_ohlc`, and `coingecko.raw_coins_ohlc`.
+
+Phase 16 extends that mart-first MCP surface with:
+
+- `ccxt.mart_ccxt__tickers`
+- `ccxt.mart_ccxt__order_book_snapshots`
+
+The allowlist still excludes CCXT raw and staging relations, including
+`ccxt.raw_ticker`, `ccxt.raw_order_book`, `ccxt.stg_ccxt__tickers`, and
+`ccxt.stg_ccxt__order_books`.
 
 ## 12. Current Boundaries
 

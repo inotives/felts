@@ -20,6 +20,8 @@ models:
     +materialized: view
     staging:
       +materialized: view
+      ccxt:
+        +schema: ccxt
       coingecko:
         +schema: coingecko
       csv_import:
@@ -32,6 +34,8 @@ models:
       +materialized: table
       alphavantage:
         +schema: alphavantage
+      ccxt:
+        +schema: ccxt
       coingecko:
         +schema: coingecko
       csv_import:
@@ -41,5 +45,7 @@ models:
 
 seeds:
   felts:
+    ccxt:
+      +schema: ccxt
     felts:
       +schema: felts

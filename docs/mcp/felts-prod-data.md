@@ -11,6 +11,8 @@ clients should use the mart relation instead of an older staging relation.
 
 Preferred access is the committed mart surface:
 
+- `ccxt.mart_ccxt__order_book_snapshots`
+- `ccxt.mart_ccxt__tickers`
 - `coingecko.mart_coingecko__asset_platforms`
 - `coingecko.mart_coingecko__coins`
 - `coingecko.mart_coingecko__coin_daily_market_metrics`
@@ -36,6 +38,16 @@ For Phase 15 CoinGecko semantics:
   price.
 - MCP does not expose `coingecko.int_coingecko__coin_ohlc_daily_rollups`,
   `coingecko.raw_coins_ohlc`, or `coingecko.stg_coingecko__coins_ohlc`.
+
+For Phase 16 CCXT semantics:
+
+- `ccxt.mart_ccxt__tickers` exposes manual public exchange ticker snapshots for
+  CCXT `binance` `BTC/USDT` at one row per exchange, symbol, and observed time.
+- `ccxt.mart_ccxt__order_book_snapshots` exposes manual public exchange top-20
+  order book snapshots for CCXT `binance` `BTC/USDT`, including `best_bid`,
+  `best_ask`, `spread`, `mid_price`, and preserved `bids` and `asks` JSON.
+- MCP does not expose `ccxt.raw_ticker`, `ccxt.raw_order_book`,
+  `ccxt.stg_ccxt__tickers`, or `ccxt.stg_ccxt__order_books`.
 
 ## Local setup
 
